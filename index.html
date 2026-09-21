@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avalanche Airdrop Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0b14;
+    --surface: rgba(255,255,255,.035);
+    --surface-2: rgba(255,255,255,.06);
+    --border: rgba(255,255,255,.08);
+    --border-2: rgba(255,255,255,.14);
+    --text: #eef0f6;
+    --text-dim: #8b90a5;
+    --text-mute: #5a5e72;
+    --accent: #ff4d4d;
+    --green: #22c55e;
+    --orange: #f59e0b;
+    --purple: #a855f7;
+    --blue: #3b82f6;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  body {
+    font-family: 'Vazirmatn', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,77,77,.15), transparent),
+      radial-gradient(ellipse 60% 50% at 80% 100%, rgba(168,85,247,.12), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-logo {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ff4d4d, #b91c1c);
+    display: grid; place-items: center;
+    font-size: 22px;
+    box-shadow: 0 8px 24px rgba(255,77,77,.3);
+  }
+  .brand-text h1 {
+    font-size: 18px; font-weight: 800;
+    background: linear-gradient(90deg, #fff, #ffb3b3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .brand-text p { font-size: 12px; color: var(--text-dim); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  @media (min-width: 700px) {
+    .stats { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  }
+  .stat {
+    position: relative;
+    padding: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color .25s;
+  }
+  .stat:hover { border-color: var(--border-2); }
+  .stat::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 4px; height: 100%;
+    background: var(--accent);
+    opacity: .6;
+  }
+  .stat.green::after { background: var(--green); }
+  .stat.orange::after { background: var(--orange); }
+  .stat.purple::after { background: var(--purple); }
+
+  .stat-icon {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.05);
+    display: grid; place-items: center;
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  .stat.green .stat-icon { background: rgba(34,197,94,.12); }
+  .stat.orange .stat-icon { background: rgba(245,158,11,.12); }
+  .stat.purple .stat-icon { background: rgba(168,85,247,.12); }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+    font-feature-settings: "tnum";
+    margin-bottom: 4px;
+  }
+  .stat-label { font-size: 12px; color: var(--text-dim); }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  @media (min-width: 700px) {
+    .panel { padding: 28px; }
+  }
+
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+  .panel-title .icon {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.05);
+    display: grid; place-items: center;
+    font-size: 15px;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-bottom: 7px;
+  }
+
+  input, textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(0,0,0,.3);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    transition: all .2s;
+    outline: none;
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-mute); }
+  input:focus, textarea:focus {
+    border-color: var(--accent);
+    background: rgba(0,0,0,.45);
+    box-shadow: 0 0 0 4px rgba(255,77,77,.1);
+  }
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+
+  .add-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  @media (min-width: 640px) {
+    .add-form {
+      grid-template-columns: 1fr 160px auto;
+      align-items: end;
+    }
+  }
+
+  button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: white;
+    transition: all .15s;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.1); }
+  button:active:not(:disabled) { transform: scale(.98); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+
+  .btn-primary { background: linear-gradient(135deg, #ff4d4d, #b91c1c); }
+  .btn-success { background: linear-gradient(135deg, #22c55e, #15803d); }
+  .btn-blue { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+  .btn-ghost {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-sm {
+    padding: 7px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .dup-alert {
+    margin-top: 14px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(245,158,11,.08), rgba(245,158,11,.03));
+    border: 1px solid rgba(245,158,11,.3);
+    border-radius: var(--radius-sm);
+    display: none;
+  }
+  .dup-alert.show { display: block; }
+  .dup-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #fbbf24;
+  }
+  .dup-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .dup-info-item {
+    background: rgba(0,0,0,.3);
+    border-radius: 9px;
+    padding: 10px 12px;
+  }
+  .dup-info-item .k { font-size: 11px; color: var(--text-mute); margin-bottom: 3px; }
+  .dup-info-item .v {
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .dup-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .segmented {
+    display: inline-flex;
+    background: rgba(0,0,0,.3);
+    padding: 4px;
+    border-radius: 11px;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .segmented button {
+    flex: 1;
+    padding: 8px 10px;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .segmented button.active {
+    background: linear-gradient(135deg, #ff4d4d, #b91c1c);
+    color: white;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1 1 100%;
+    min-width: 200px;
+  }
+  @media (min-width: 700px) {
+    .search-wrap { flex: 0 1 300px; }
+  }
+  .search-wrap input {
+    padding-right: 40px;
+    margin: 0;
+  }
+  .search-wrap::before {
+    content: '🔍';
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    opacity: .5;
+    pointer-events: none;
+  }
+
+  .row-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .row-card {
+    background: rgba(0,0,0,.2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "idx  status actions"
+      "addr addr   addr"
+      "amt  amt    amt";
+    gap: 10px;
+    align-items: center;
+    transition: background .15s, border-color .15s;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 120px;
+  }
+  .row-card:hover { background: rgba(0,0,0,.3); border-color: var(--border-2); }
+  .row-card.sent {
+    background: rgba(34,197,94,.05);
+    border-color: rgba(34,197,94,.2);
+  }
+  .row-card.sent .addr-text {
+    text-decoration: line-through;
+    text-decoration-color: rgba(255,255,255,.3);
+  }
+
+  @media (min-width: 700px) {
+    .row-card {
+      grid-template-columns: 40px 1fr 140px 130px 200px;
+      grid-template-areas: "idx addr amt status actions";
+      padding: 12px 16px;
+    }
+  }
+
+  .row-idx {
+    grid-area: idx;
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: rgba(255,255,255,.05);
+    display: grid; place-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    font-feature-settings: "tnum";
+  }
+
+  .addr-wrap {
+    grid-area: addr;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .addr-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #d1e0ff;
+    direction: ltr;
+    text-align: left;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(59,130,246,.06);
+    border: 1px solid rgba(59,130,246,.15);
+    transition: all .15s;
+    word-break: break-all;
+    line-height: 1.5;
+    flex: 1;
+    min-width: 0;
+    user-select: all;
+  }
+  .addr-text:hover {
+    background: rgba(59,130,246,.12);
+    border-color: rgba(59,130,246,.3);
+    color: #e0ecff;
+  }
+  @media (min-width: 700px) {
+    .addr-text { font-size: 12px; }
+  }
+
+  .copy-btn {
+    flex-shrink: 0;
+    width: 34px; height: 34px;
+    padding: 0;
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-dim);
+    display: grid;
+    place-items: center;
+    transition: all .15s;
+  }
+  .copy-btn:hover:not(:disabled) {
+    background: rgba(59,130,246,.15);
+    border-color: rgba(59,130,246,.4);
+    color: #93c5fd;
+  }
+  .copy-btn.copied {
+    background: rgba(34,197,94,.18) !important;
+    border-color: rgba(34,197,94,.55) !important;
+    color: #86efac !important;
+  }
+
+  .row-amt {
+    grid-area: amt;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 15px;
+    color: #d1a3ff;
+    font-feature-settings: "tnum";
+    direction: ltr;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .row-amt .label {
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 11px;
+    color: var(--text-mute);
+    font-weight: 500;
+  }
+  @media (min-width: 700px) {
+    .row-amt { text-align: right; direction: rtl; }
+    .row-amt .label { display: none; }
+  }
+
+  .row-status {
+    grid-area: status;
+    display: flex;
+    justify-content: flex-start;
+  }
+  @media (min-width: 700px) {
+    .row-status { justify-content: center; }
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .status-badge.wait {
+    background: rgba(245,158,11,.12);
+    color: #fbbf24;
+    border: 1px solid rgba(245,158,11,.25);
+  }
+  .status-badge.ok {
+    background: rgba(34,197,94,.12);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,.25);
+  }
+
+  .row-actions {
+    grid-area: actions;
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  @media (min-width: 700px) {
+    .row-actions { justify-content: center; }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-mute);
+  }
+  .empty-state .icon { font-size: 48px; opacity: .3; margin-bottom: 12px; }
+  .empty-state p { font-size: 13.5px; }
+
+  .toast-stack {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    align-items: flex-start;
+  }
+  @media (min-width: 700px) {
+    .toast-stack { right: auto; max-width: 360px; }
+  }
+  .toast {
+    background: rgba(20,22,32,.96);
+    border: 1px solid var(--border-2);
+    border-right: 4px solid var(--green);
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    backdrop-filter: blur(20px);
+    animation: toastIn .3s cubic-bezier(.2,.9,.3,1.3);
+    pointer-events: auto;
+    max-width: 100%;
+  }
+  .toast.warn { border-right-color: var(--orange); }
+  .toast.err  { border-right-color: var(--accent); }
+  .toast.info { border-right-color: var(--blue); }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-30px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(6px);
+    z-index: 9998;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-bg.show { display: flex; animation: fadeIn .2s; }
+  .modal {
+    background: #14161f;
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+    animation: slideUp .3s cubic-bezier(.2,.9,.3,1.3);
+  }
+  .modal h3 { font-size: 17px; margin-bottom: 10px; }
+  .modal p { color: var(--text-dim); font-size: 13.5px; line-height: 1.7; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.1);
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.2); }
+</style>
+</head>
+<body>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<div class="container">
+
+  <div class="header">
+    <div class="brand">
+      <div class="brand-logo">🔺</div>
+      <div class="brand-text">
+        <h1>Airdrop Manager</h1>
+        <p>مدیریت ارسال توکن روی Avalanche</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-icon">👥</div>
+      <div class="stat-value" id="stTotal">0</div>
+      <div class="stat-label">کل والت‌ها</div>
+    </div>
+    <div class="stat green">
+      <div class="stat-icon">✅</div>
+      <div class="stat-value" id="stSent">0</div>
+      <div class="stat-label">ارسال شده</div>
+    </div>
+    <div class="stat orange">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-value" id="stWait">0</div>
+      <div class="stat-label">در انتظار</div>
+    </div>
+    <div class="stat purple">
+      <div class="stat-icon">💎</div>
+      <div class="stat-value" id="stToken">0</div>
+      <div class="stat-label">مجموع توکن</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      <div class="icon">➕</div>
+      <span>افزودن والت جدید</span>
+    </div>
+
+    <div class="add-form">
+      <div class="field" style="margin:0;">
+        <label>آدرس والت</label>
+        <input id="newAddr" placeholder="0x..." autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="field" style="margin:0;">
+        <label>تعداد توکن</label>
+        <input id="newAmt" type="number" step="any" placeholder="100" autocomplete="off" />
+      </div>
+      <button class="btn-success" id="addBtn">افزودن</button>
+    </div>
+
+    <div class="dup-alert" id="dupAlert">
+      <div class="dup-head"><span>⚠️</span><span>این آدرس قبلاً ثبت شده است</span></div>
+      <div class="dup-info">
+        <div class="dup-info-item">
+          <div class="k">مقدار فعلی</div>
+          <div class="v" id="dupAmt">-</div>
+        </div>
+        <div class="dup-info-item">
+          <div class="k">وضعیت</div>
+          <div class="v" id="dupStatus">-</div>
+        </div>
+      </div>
+      <div class="dup-actions">
+        <button class="btn-sm btn-ghost" id="dupUpdate">🔄 آپدیت مقدار</button>
+        <button class="btn-sm btn-ghost" id="dupClose">بستن</button>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:18px;">
+      <label>📥 ایمپورت گروهی — هر خط: آدرس,مقدار</label>
+      <textarea id="bulkInput" placeholder="0xAAA...,100&#10;0xBBB...,250&#10;0xCCC...,50"></textarea>
+    </div>
+    <button class="btn-blue" id="bulkAddBtn">📥 ایمپورت گروهی</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      <div class="icon">📋</div>
+      <span>لیست والت‌ها</span>
+    </div>
+
+    <div class="toolbar">
+      <div class="segmented">
+        <button class="active" data-filter="all">همه</button>
+        <button data-filter="wait">ارسال نشده</button>
+        <button data-filter="sent">ارسال شده</button>
+      </div>
+      <div class="search-wrap">
+        <input id="searchBox" placeholder="جستجوی آدرس..." autocomplete="off" />
+      </div>
+      <button class="btn-ghost btn-sm" id="exportBtn">📤 CSV</button>
+      <button class="btn-ghost btn-sm" id="clearSentBtn">🧹 حذف ارسال‌شده</button>
+      <button class="btn-ghost btn-sm" id="clearAllBtn">🗑️ پاک همه</button>
+    </div>
+
+    <div class="row-list" id="rowList"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="icon">📭</div>
+      <p>هنوز هیچ والت‌ی اضافه نشده</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">تأیید</h3>
+    <p id="modalBody"></p>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="modalCancel">لغو</button>
+      <button class="btn-primary" id="modalConfirm">تأیید</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════
+   INDEXEDDB SETUP
+   ═══════════════════════════════════════════ */
+const DB_NAME = 'avax_airdrop_manager';
+const DB_VERSION = 1;
+const STORE_ROWS = 'rows';
+const STORE_META = 'meta';
+
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    req.onupgradeneeded = e => {
+      const database = e.target.result;
+
+      // Object store برای ردیف‌ها
+      if (!database.objectStoreNames.contains(STORE_ROWS)) {
+        const store = database.createObjectStore(STORE_ROWS, { keyPath: 'id' });
+        store.createIndex('addressLC', 'addressLC', { unique: true });
+        store.createIndex('sent', 'sent', { unique: false });
+      }
+
+      // Object store برای تنظیمات
+      if (!database.objectStoreNames.contains(STORE_META)) {
+        database.createObjectStore(STORE_META, { keyPath: 'key' });
+      }
+    };
+
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   DB OPERATIONS
+   ═══════════════════════════════════════════ */
+function dbAdd(row) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROWS, 'readwrite');
+    const store = tx.objectStore(STORE_ROWS);
+    const req = store.add(row);
+    req.onsuccess = () => resolve(row);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbPut(row) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROWS, 'readwrite');
+    const store = tx.objectStore(STORE_ROWS);
+    const req = store.put(row);
+    req.onsuccess = () => resolve(row);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbDelete(id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROWS, 'readwrite');
+    const store = tx.objectStore(STORE_ROWS);
+    const req = store.delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbClear() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROWS, 'readwrite');
+    const store = tx.objectStore(STORE_ROWS);
+    const req = store.clear();
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbGetAll() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROWS, 'readonly');
+    const store = tx.objectStore(STORE_ROWS);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbBulkAdd(rows) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROWS, 'readwrite');
+    const store = tx.objectStore(STORE_ROWS);
+    let count = 0;
+    rows.forEach(r => {
+      const req = store.add(r);
+      req.onsuccess = () => { count++; };
+    });
+    tx.oncomplete = () => resolve(count);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function dbBulkDelete(ids) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ROWS, 'readwrite');
+    const store = tx.objectStore(STORE_ROWS);
+    ids.forEach(id => store.delete(id));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* Meta */
+function metaSet(key, value) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_META, 'readwrite');
+    const store = tx.objectStore(STORE_META);
+    const req = store.put({ key, value });
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+function metaGet(key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_META, 'readonly');
+    const store = tx.objectStore(STORE_META);
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result ? req.result.value : null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════ */
+const rows = [];
+const rowMap = new Map();
+const domMap = new Map();
+let idSeq = 1;
+let currentFilter = 'all';
+let currentSearch = '';
+let dupRowRef = null;
+
+const $ = id => document.getElementById(id);
+const normAddr = a => a.trim().toLowerCase();
+const fmtNum = n => Number(n).toLocaleString('en-US');
+
+/* ═══════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════ */
+function toast(msg, type = 'success', duration = 2800) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  $('toastStack').appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity .3s, transform .3s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-20px)';
+    setTimeout(() => el.remove(), 300);
+  }, duration);
+}
+
+/* ═══════════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════════ */
+let modalResolver = null;
+function confirmModal(title, body) {
+  return new Promise(resolve => {
+    $('modalTitle').textContent = title;
+    $('modalBody').textContent = body;
+    $('modalBg').classList.add('show');
+    modalResolver = resolve;
+  });
+}
+$('modalConfirm').onclick = () => {
+  $('modalBg').classList.remove('show');
+  if (modalResolver) modalResolver(true);
+};
+$('modalCancel').onclick = () => {
+  $('modalBg').classList.remove('show');
+  if (modalResolver) modalResolver(false);
+};
+$('modalBg').onclick = e => {
+  if (e.target === $('modalBg')) $('modalCancel').click();
+};
+
+/* ═══════════════════════════════════════════
+   STATS
+   ═══════════════════════════════════════════ */
+let statsScheduled = false;
+function updateStats() {
+  if (statsScheduled) return;
+  statsScheduled = true;
+  requestAnimationFrame(() => {
+    statsScheduled = false;
+    let sent = 0, tokenSum = 0;
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].sent) sent++;
+      tokenSum += rows[i].amountNum || 0;
+    }
+    $('stTotal').textContent = fmtNum(rows.length);
+    $('stSent').textContent  = fmtNum(sent);
+    $('stWait').textContent  = fmtNum(rows.length - sent);
+    $('stToken').textContent = fmtNum(tokenSum);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   ROW CARD
+   ═══════════════════════════════════════════ */
+function buildRowEl(row) {
+  const div = document.createElement('div');
+  div.className = 'row-card';
+  div.dataset.id = row.id;
+  div.innerHTML = `
+    <div class="row-idx"></div>
+    <div class="addr-wrap">
+      <span class="addr-text" title="کلیک برای کپی"></span>
+      <button class="copy-btn" title="کپی آدرس">📋</button>
+    </div>
+    <div class="row-amt"><span class="label">مقدار:</span><span class="amt-value"></span></div>
+    <div class="row-status"></div>
+    <div class="row-actions">
+      <button class="btn-sm toggle-btn"></button>
+      <button class="btn-sm btn-ghost del-btn">🗑️</button>
+    </div>
+  `;
+  updateRowEl(div, row);
+  return div;
+}
+
+function formatAmount(num) {
+  if (!isFinite(num)) return '0';
+  if (Number.isInteger(num)) return num.toLocaleString('en-US');
+  const [int, dec] = num.toString().split('.');
+  return Number(int).toLocaleString('en-US') + '.' + dec;
+}
+
+function updateRowEl(div, row) {
+  div.classList.toggle('sent', row.sent);
+  div.querySelector('.addr-text').textContent = row.address;
+  div.querySelector('.amt-value').textContent = formatAmount(row.amountNum);
+
+  const statusCell = div.querySelector('.row-status');
+  statusCell.innerHTML = row.sent
+    ? '<span class="status-badge ok">✅ ارسال شده</span>'
+    : '<span class="status-badge wait">⏳ ارسال نشده</span>';
+
+  const toggleBtn = div.querySelector('.toggle-btn');
+  if (row.sent) {
+    toggleBtn.className = 'btn-sm toggle-btn btn-ghost';
+    toggleBtn.textContent = '↩️ برگردون';
+  } else {
+    toggleBtn.className = 'btn-sm toggle-btn btn-success';
+    toggleBtn.textContent = '✅ ارسال شد';
+  }
+}
+
+function matchesFilter(row) {
+  if (currentFilter === 'wait' && row.sent) return false;
+  if (currentFilter === 'sent' && !row.sent) return false;
+  if (currentSearch && !row.addressLC.includes(currentSearch)) return false;
+  return true;
+}
+
+function appendRow(row) {
+  const div = buildRowEl(row);
+  const visible = matchesFilter(row);
+  if (!visible) div.style.display = 'none';
+  $('rowList').appendChild(div);
+  domMap.set(row.id, div);
+  scheduleReindex();
+}
+
+let reindexScheduled = false;
+function scheduleReindex() {
+  if (reindexScheduled) return;
+  reindexScheduled = true;
+  requestAnimationFrame(() => {
+    reindexScheduled = false;
+    let n = 1;
+    const divs = $('rowList').children;
+    for (let i = 0; i < divs.length; i++) {
+      const div = divs[i];
+      if (div.style.display === 'none') continue;
+      div.querySelector('.row-idx').textContent = n++;
+    }
+    $('emptyState').style.display = n === 1 ? 'block' : 'none';
+  });
+}
+
+async function addRow(address, amount, skipSave = false) {
+  const amtNum = parseFloat(amount);
+  const row = {
+    id: idSeq++,
+    address: address.trim(),
+    addressLC: normAddr(address),
+    amount: String(amount).trim(),
+    amountNum: amtNum,
+    sent: false
+  };
+  rows.push(row);
+  rowMap.set(row.addressLC, row);
+  appendRow(row);
+  updateStats();
+  if (!skipSave) {
+    try { await dbAdd(row); } catch (e) { console.warn('DB add failed', e); }
+  }
+  return row;
+}
+
+/* ═══════════════════════════════════════════
+   DUPLICATE
+   ═══════════════════════════════════════════ */
+function showDupAlert(row, newAmount) {
+  dupRowRef = row;
+  $('dupAmt').textContent = fmtNum(row.amountNum);
+  $('dupStatus').textContent = row.sent ? '✅ ارسال شده' : '⏳ ارسال نشده';
+  $('dupUpdate').textContent = `🔄 آپدیت به ${newAmount || row.amount}`;
+  $('dupAlert').classList.add('show');
+}
+function hideDupAlert() {
+  $('dupAlert').classList.remove('show');
+  dupRowRef = null;
+}
+
+/* ═══════════════════════════════════════════
+   INPUT
+   ═══════════════════════════════════════════ */
+$('newAddr').addEventListener('input', () => {
+  const addr = $('newAddr').value.trim();
+  if (!addr) { hideDupAlert(); return; }
+  const existing = rowMap.get(normAddr(addr));
+  if (existing) showDupAlert(existing, $('newAmt').value.trim());
+  else hideDupAlert();
+});
+$('newAmt').addEventListener('input', () => {
+  if (!dupRowRef) return;
+  const v = $('newAmt').value.trim() || dupRowRef.amount;
+  $('dupUpdate').textContent = `🔄 آپدیت به ${v}`;
+});
+
+$('dupUpdate').onclick = async () => {
+  if (!dupRowRef) return;
+  const v = $('newAmt').value.trim();
+  if (!v || parseFloat(v) <= 0) { toast('مقدار معتبر وارد کن', 'err'); return; }
+  dupRowRef.amount = v;
+  dupRowRef.amountNum = parseFloat(v);
+  const div = domMap.get(dupRowRef.id);
+  if (div) updateRowEl(div, dupRowRef);
+  updateStats();
+  try { await dbPut(dupRowRef); } catch (e) { console.warn(e); }
+  toast(`✅ آپدیت شد به ${fmtNum(v)}`, 'success');
+  $('newAddr').value = '';
+  $('newAmt').value = '';
+  $('newAddr').focus();
+  hideDupAlert();
+};
+$('dupClose').onclick = hideDupAlert;
+
+$('addBtn').onclick = async () => {
+  const addr = $('newAddr').value.trim();
+  const amt = $('newAmt').value.trim();
+  if (!addr) { toast('آدرس را وارد کنید', 'err'); return; }
+  if (!amt || parseFloat(amt) <= 0) { toast('مقدار معتبر وارد کنید', 'err'); return; }
+  if (rowMap.has(normAddr(addr))) {
+    showDupAlert(rowMap.get(normAddr(addr)), amt);
+    toast('⚠️ این آدرس قبلاً ثبت شده', 'warn');
+    return;
+  }
+  await addRow(addr, amt);
+  toast('✅ والت اضافه شد', 'success');
+  $('newAddr').value = '';
+  $('newAmt').value = '';
+  $('newAddr').focus();
+  hideDupAlert();
+};
+$('newAddr').addEventListener('keydown', e => { if (e.key === 'Enter') $('newAmt').focus(); });
+$('newAmt').addEventListener('keydown', e => { if (e.key === 'Enter') $('addBtn').click(); });
+
+/* ═══════════════════════════════════════════
+   BULK IMPORT
+   ═══════════════════════════════════════════ */
+$('bulkAddBtn').onclick = async () => {
+  const raw = $('bulkInput').value.trim();
+  if (!raw) return;
+  const lines = raw.split('\n');
+  const toAdd = [];
+  let skipped = 0, dup = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const parts = line.split(/[,;\t]/);
+    if (parts.length < 2) { skipped++; continue; }
+    const addr = parts[0].trim();
+    const amt = parts[1].trim();
+    if (!addr || !amt || parseFloat(amt) <= 0) { skipped++; continue; }
+    if (rowMap.has(normAddr(addr))) { dup++; continue; }
+
+    const amtNum = parseFloat(amt);
+    const row = {
+      id: idSeq++,
+      address: addr,
+      addressLC: normAddr(addr),
+      amount: String(amt).trim(),
+      amountNum: amtNum,
+      sent: false
+    };
+    rows.push(row);
+    rowMap.set(row.addressLC, row);
+    appendRow(row);
+    toAdd.push(row);
+  }
+
+  if (toAdd.length) {
+    try { await dbBulkAdd(toAdd); } catch (e) { console.warn(e); }
+  }
+
+  $('bulkInput').value = '';
+  updateStats();
+  toast(`✅ ${toAdd.length} اضافه${dup ? ` • ${dup} تکراری` : ''}${skipped ? ` • ${skipped} نامعتبر` : ''}`, 'success', 4000);
+};
+
+/* ═══════════════════════════════════════════
+   ROW ACTIONS
+   ═══════════════════════════════════════════ */
+$('rowList').addEventListener('click', async e => {
+  const card = e.target.closest('.row-card');
+  if (!card) return;
+  const id = parseInt(card.dataset.id);
+  const row = rows.find(r => r.id === id);
+  if (!row) return;
+
+  if (e.target.closest('.copy-btn') || e.target.classList.contains('addr-text')) {
+    const btn = card.querySelector('.copy-btn');
+    try {
+      await navigator.clipboard.writeText(row.address);
+      btn.classList.add('copied');
+      btn.textContent = '✓';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = '📋';
+      }, 1200);
+      toast('📋 کپی شد', 'info', 1500);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = row.address;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); toast('📋 کپی شد', 'info', 1500); } catch {}
+      ta.remove();
+    }
+    return;
+  }
+
+  if (e.target.closest('.toggle-btn')) {
+    row.sent = !row.sent;
+    updateRowEl(card, row);
+    updateStats();
+    try { await dbPut(row); } catch (err) { console.warn(err); }
+    toast(row.sent ? '✅ ارسال شد' : '↩️ برگشت', row.sent ? 'success' : 'info', 1500);
+    return;
+  }
+
+  if (e.target.closest('.del-btn')) {
+    const idx = rows.indexOf(row);
+    if (idx !== -1) rows.splice(idx, 1);
+    rowMap.delete(row.addressLC);
+    domMap.delete(row.id);
+    card.remove();
+    updateStats();
+    scheduleReindex();
+    try { await dbDelete(row.id); } catch (err) { console.warn(err); }
+    toast('🗑️ حذف شد', 'info', 1500);
+  }
+});
+
+/* ═══════════════════════════════════════════
+   FILTERS
+   ═══════════════════════════════════════════ */
+document.querySelectorAll('.segmented button').forEach(btn => {
+  btn.onclick = async () => {
+    document.querySelectorAll('.segmented button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    applyFilters();
+    try { await metaSet('currentFilter', currentFilter); } catch {}
+  };
+});
+let searchTimer = null;
+$('searchBox').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    currentSearch = e.target.value.trim().toLowerCase();
+    applyFilters();
+    try { await metaSet('currentSearch', currentSearch); } catch {}
+  }, 200);
+});
+
+function applyFilters() {
+  const divs = $('rowList').children;
+  for (let i = 0; i < divs.length; i++) {
+    const div = divs[i];
+    const id = parseInt(div.dataset.id);
+    const row = rows.find(r => r.id === id);
+    if (!row) continue;
+    const visible = matchesFilter(row);
+    div.style.display = visible ? '' : 'none';
+  }
+  scheduleReindex();
+}
+
+/* ═══════════════════════════════════════════
+   CLEAR / EXPORT
+   ═══════════════════════════════════════════ */
+$('clearAllBtn').onclick = async () => {
+  if (!rows.length) return;
+  const ok = await confirmModal('پاک کردن همه', `همه ${rows.length} والت حذف شوند؟`);
+  if (!ok) return;
+  rows.length = 0;
+  rowMap.clear();
+  domMap.clear();
+  $('rowList').innerHTML = '';
+  updateStats();
+  scheduleReindex();
+  try { await dbClear(); } catch (e) { console.warn(e); }
+  toast('🗑️ همه پاک شدند', 'info');
+};
+
+$('clearSentBtn').onclick = async () => {
+  const sentRows = rows.filter(r => r.sent);
+  if (!sentRows.length) { toast('هیچ ارسال‌شده‌ای نیست', 'warn'); return; }
+  const ok = await confirmModal('حذف ارسال‌شده‌ها', `${sentRows.length} والت حذف شوند؟`);
+  if (!ok) return;
+  const idsToDelete = [];
+  sentRows.forEach(row => {
+    const idx = rows.indexOf(row);
+    if (idx !== -1) rows.splice(idx, 1);
+    rowMap.delete(row.addressLC);
+    const div = domMap.get(row.id);
+    if (div) div.remove();
+    domMap.delete(row.id);
+    idsToDelete.push(row.id);
+  });
+  updateStats();
+  scheduleReindex();
+  try { await dbBulkDelete(idsToDelete); } catch (e) { console.warn(e); }
+  toast(`🧹 ${sentRows.length} حذف شد`, 'success');
+};
+
+$('exportBtn').onclick = () => {
+  if (!rows.length) { toast('لیست خالی است', 'warn'); return; }
+  const csv = 'address,amount,status\n' + rows.map(r =>
+    `${r.address},${r.amount},${r.sent ? 'sent' : 'pending'}`
+  ).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wallets_${Date.now()}.csv`;
+  a.click();
+  toast('📤 دانلود شد', 'info');
+};
+
+/* ═══════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════ */
+async function init() {
+  try {
+    await openDB();
+
+    // خوندن ردیف‌ها
+    const dbRows = await dbGetAll();
+    dbRows.sort((a, b) => a.id - b.id);
+
+    dbRows.forEach(r => {
+      const amtNum = parseFloat(r.amount);
+      if (isNaN(amtNum)) return;
+      const row = {
+        id: r.id,
+        address: r.address,
+        addressLC: r.addressLC || normAddr(r.address),
+        amount: String(r.amount),
+        amountNum: amtNum,
+        sent: !!r.sent
+      };
+      rows.push(row);
+      rowMap.set(row.addressLC, row);
+      appendRow(row);
+    });
+
+    idSeq = rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 1;
+
+    // خوندن فیلتر و جستجو
+    const savedFilter = await metaGet('currentFilter');
+    const savedSearch = await metaGet('currentSearch');
+    if (savedFilter) {
+      currentFilter = savedFilter;
+      document.querySelectorAll('.segmented button').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === currentFilter);
+      });
+    }
+    if (savedSearch) {
+      currentSearch = savedSearch;
+      $('searchBox').value = savedSearch;
+    }
+
+    applyFilters();
+    updateStats();
+
+    if (rows.length > 0) {
+      setTimeout(() => {
+        toast(`📂 ${fmtNum(rows.length)} والت بازیابی شد`, 'info', 2500);
+      }, 300);
+    }
+  } catch (e) {
+    console.error('Init failed:', e);
+    toast('خطا در باز کردن دیتابیس', 'err', 4000);
+  }
+}
+
+init();
+</script>
+</body>
+  </html>
