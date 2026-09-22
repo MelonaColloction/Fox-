@@ -5,10 +5,11 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'index.html'
-      - 'icon.png'
-      - '.github/workflows/build.yml'
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
 
 jobs:
   build:
@@ -65,7 +66,7 @@ jobs:
 
 
       # ==========================================
-      # PREPARE WALLET
+      # PREPARE APP
       # ==========================================
       - name: Prepare app
         run: |
@@ -425,7 +426,6 @@ jobs:
 
           extensions = (".png", ".jpg", ".jpeg", ".webp")
 
-          # === آیکون اصلی اپ ===
           icon_file = None
           if os.path.exists("icon.png"):
               icon_file = "icon.png"
