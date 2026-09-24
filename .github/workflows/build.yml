@@ -286,16 +286,37 @@ jobs:
           with open(path, "r", encoding="utf-8") as f:
               text = f.read()
 
+          # applicationId
           text = re.sub(r'applicationId\s+"[^"]+"', 'applicationId "com.avalanche.airdropmanager"', text, count=1)
+
+          # compileSdk
           text = re.sub(r'compileSdk\s+\d+', 'compileSdk 35', text, count=1)
+
+          # minSdkVersion = 23 (نیاز پلاگین Native Biometric)
+          if re.search(r'minSdkVersion\s+rootProject\.ext\.minSdkVersion', text):
+              text = re.sub(
+                  r'minSdkVersion\s+rootProject\.ext\.minSdkVersion',
+                  'minSdkVersion 23',
+                  text, count=1
+              )
+          else:
+              text = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 23', text, count=1)
+
+          # targetSdk (اختیاری - نگه می‌داریم روی 35)
+          text = re.sub(r'targetSdkVersion\s+rootProject\.ext\.targetSdkVersion', 'targetSdkVersion 35', text, count=1)
+          text = re.sub(r'targetSdkVersion\s+\d+', 'targetSdkVersion 35', text, count=1)
+
+          # versionCode / versionName
           text = re.sub(r'versionCode\s+\d+', 'versionCode ' + os.environ["VERSION_CODE"], text, count=1)
           text = re.sub(r'versionName\s+"[^"]+"', 'versionName "' + os.environ["VERSION_NAME"] + '"', text, count=1)
 
+          # حذف signingConfigs قدیمی
           text = re.sub(
               r'\n\s*signingConfigs\s*\{.*?\n\s*\}\s*(?=\n\s*buildTypes)',
               '', text, count=1, flags=re.S
           )
 
+          # اضافه کردن signingConfigs جدید
           signing_block = '''
               signingConfigs {
                   release {
@@ -313,6 +334,7 @@ jobs:
           if "signingConfigs {" not in text:
               text = text.replace("    buildTypes {", signing_block + "    buildTypes {", 1)
 
+          # اضافه کردن signingConfig به release
           release_pattern = r'(buildTypes\s*\{\s*release\s*\{)'
           if "signingConfig signingConfigs.release" not in text:
               text = re.sub(
@@ -321,6 +343,7 @@ jobs:
                   text, count=1, flags=re.S
               )
 
+          # minifyEnabled false
           if re.search(r'buildTypes\s*\{.*?release\s*\{', text, re.S):
               release_match = re.search(
                   r'(buildTypes\s*\{\s*release\s*\{)(.*?)(\n\s*\})',
@@ -338,6 +361,7 @@ jobs:
               f.write(text)
 
           print("Android Gradle configured.")
+          print("minSdkVersion set to 23 (Native Biometric requirement)")
           PY
 
 
@@ -380,7 +404,7 @@ jobs:
 
 
       # ==========================================
-      # ADD PERMISSIONS
+      # ADD PERMISSIONS (INTERNET + BIOMETRIC)
       # ==========================================
       - name: Add permissions
         run: |
@@ -405,7 +429,7 @@ jobs:
           with open(path, "w", encoding="utf-8") as f:
               f.write(text)
 
-          print("Permissions added.")
+          print("Permissions added (INTERNET + USE_BIOMETRIC + USE_FINGERPRINT).")
           PY
 
 
@@ -549,3 +573,4 @@ jobs:
         run: |
           rm -f AirdropManager.keystore
           rm -f android/app/AirdropManager.keystore
+          rm -f CUSTOM_ICON
