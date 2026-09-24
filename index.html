@@ -24,6 +24,8 @@
     --orange: #f59e0b;
     --purple: #a855f7;
     --blue: #3b82f6;
+    --pink: #ec4899;
+    --cyan: #06b6d4;
     --radius: 16px;
     --radius-sm: 10px;
   }
@@ -112,6 +114,9 @@
   .stat.green::after { background: var(--green); }
   .stat.orange::after { background: var(--orange); }
   .stat.purple::after { background: var(--purple); }
+  .stat.pink::after { background: var(--pink); }
+  .stat.cyan::after { background: var(--cyan); }
+  .stat.blue::after { background: var(--blue); }
 
   .stat-icon {
     width: 32px; height: 32px;
@@ -124,6 +129,9 @@
   .stat.green .stat-icon { background: rgba(34,197,94,.12); }
   .stat.orange .stat-icon { background: rgba(245,158,11,.12); }
   .stat.purple .stat-icon { background: rgba(168,85,247,.12); }
+  .stat.pink .stat-icon { background: rgba(236,72,153,.12); }
+  .stat.cyan .stat-icon { background: rgba(6,182,212,.12); }
+  .stat.blue .stat-icon { background: rgba(59,130,246,.12); }
 
   .stat-value {
     font-size: 24px;
@@ -133,6 +141,12 @@
     margin-bottom: 4px;
   }
   .stat-label { font-size: 12px; color: var(--text-dim); }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text-mute);
+    margin-top: 6px;
+    font-feature-settings: "tnum";
+  }
 
   .panel {
     background: var(--surface);
@@ -170,7 +184,7 @@
     margin-bottom: 7px;
   }
 
-  input, textarea {
+  input, textarea, select {
     width: 100%;
     padding: 12px 14px;
     background: rgba(0,0,0,.3);
@@ -183,11 +197,20 @@
     outline: none;
   }
   input::placeholder, textarea::placeholder { color: var(--text-mute); }
-  input:focus, textarea:focus {
+  input:focus, textarea:focus, select:focus {
     border-color: var(--accent);
     background: rgba(0,0,0,.45);
     box-shadow: 0 0 0 4px rgba(255,77,77,.1);
   }
+  select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b90a5' stroke-width='2.5'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: left 14px center;
+    padding-left: 38px;
+  }
+  select option { background: #14161f; color: var(--text); }
   textarea {
     resize: vertical;
     min-height: 100px;
@@ -203,7 +226,7 @@
   }
   @media (min-width: 640px) {
     .add-form {
-      grid-template-columns: 1fr 160px auto;
+      grid-template-columns: 1fr 130px 160px auto;
       align-items: end;
     }
   }
@@ -329,6 +352,16 @@
     pointer-events: none;
   }
 
+  .cat-filter-wrap {
+    flex: 0 1 180px;
+  }
+  .cat-filter-wrap select {
+    padding: 10px 14px;
+    padding-left: 36px;
+    font-size: 12.5px;
+    background-color: rgba(0,0,0,.3);
+  }
+
   .row-list {
     display: flex;
     flex-direction: column;
@@ -345,12 +378,13 @@
     grid-template-areas:
       "idx  status actions"
       "addr addr   addr"
+      "cat  cat    cat"
       "amt  amt    amt";
     gap: 10px;
     align-items: center;
     transition: background .15s, border-color .15s;
     content-visibility: auto;
-    contain-intrinsic-size: auto 120px;
+    contain-intrinsic-size: auto 140px;
   }
   .row-card:hover { background: rgba(0,0,0,.3); border-color: var(--border-2); }
   .row-card.sent {
@@ -364,8 +398,8 @@
 
   @media (min-width: 700px) {
     .row-card {
-      grid-template-columns: 40px 1fr 140px 130px 200px;
-      grid-template-areas: "idx addr amt status actions";
+      grid-template-columns: 40px 1fr 130px 120px 130px 200px;
+      grid-template-areas: "idx addr amt cat status actions";
       padding: 12px 16px;
     }
   }
@@ -463,6 +497,46 @@
   @media (min-width: 700px) {
     .row-amt { text-align: right; direction: rtl; }
     .row-amt .label { display: none; }
+  }
+
+  .row-cat {
+    grid-area: cat;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .row-cat .label {
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 11px;
+    color: var(--text-mute);
+    font-weight: 500;
+  }
+  @media (min-width: 700px) {
+    .row-cat { justify-content: center; }
+    .row-cat .label { display: none; }
+  }
+  .cat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .cat-badge:hover { filter: brightness(1.2); }
+  .cat-badge.community {
+    background: rgba(6,182,212,.12);
+    color: #67e8f9;
+    border: 1px solid rgba(6,182,212,.3);
+  }
+  .cat-badge.nft {
+    background: rgba(236,72,153,.12);
+    color: #f9a8d4;
+    border: 1px solid rgba(236,72,153,.3);
   }
 
   .row-status {
@@ -610,21 +684,37 @@
       <div class="stat-icon">👥</div>
       <div class="stat-value" id="stTotal">0</div>
       <div class="stat-label">کل والت‌ها</div>
+      <div class="stat-sub" id="stTotalSub">—</div>
     </div>
     <div class="stat green">
       <div class="stat-icon">✅</div>
       <div class="stat-value" id="stSent">0</div>
       <div class="stat-label">ارسال شده</div>
+      <div class="stat-sub" id="stSentSub">—</div>
     </div>
     <div class="stat orange">
       <div class="stat-icon">⏳</div>
       <div class="stat-value" id="stWait">0</div>
       <div class="stat-label">در انتظار</div>
+      <div class="stat-sub" id="stWaitSub">—</div>
     </div>
     <div class="stat purple">
       <div class="stat-icon">💎</div>
       <div class="stat-value" id="stToken">0</div>
-      <div class="stat-label">مجموع توکن</div>
+      <div class="stat-label">مجموع کل توکن</div>
+      <div class="stat-sub" id="stTokenSub">—</div>
+    </div>
+    <div class="stat cyan">
+      <div class="stat-icon">🌐</div>
+      <div class="stat-value" id="stCommunity">0</div>
+      <div class="stat-label">مجموع توکن جامعه</div>
+      <div class="stat-sub" id="stCommunitySub">—</div>
+    </div>
+    <div class="stat pink">
+      <div class="stat-icon">🖼️</div>
+      <div class="stat-value" id="stNft">0</div>
+      <div class="stat-label">مجموع توکن هولدر NFT</div>
+      <div class="stat-sub" id="stNftSub">—</div>
     </div>
   </div>
 
@@ -643,6 +733,13 @@
         <label>تعداد توکن</label>
         <input id="newAmt" type="number" step="any" placeholder="100" autocomplete="off" />
       </div>
+      <div class="field" style="margin:0;">
+        <label>دسته‌بندی</label>
+        <select id="newCat">
+          <option value="community">🌐 جامعه</option>
+          <option value="nft">🖼️ هولدر NFT</option>
+        </select>
+      </div>
       <button class="btn-success" id="addBtn">افزودن</button>
     </div>
 
@@ -654,19 +751,20 @@
           <div class="v" id="dupAmt">-</div>
         </div>
         <div class="dup-info-item">
-          <div class="k">وضعیت</div>
-          <div class="v" id="dupStatus">-</div>
+          <div class="k">دسته فعلی</div>
+          <div class="v" id="dupCat">-</div>
         </div>
       </div>
       <div class="dup-actions">
         <button class="btn-sm btn-ghost" id="dupUpdate">🔄 آپدیت مقدار</button>
+        <button class="btn-sm btn-ghost" id="dupCatUpdate">🔀 تغییر دسته</button>
         <button class="btn-sm btn-ghost" id="dupClose">بستن</button>
       </div>
     </div>
 
     <div class="field" style="margin-top:18px;">
-      <label>📥 ایمپورت گروهی — هر خط: آدرس,مقدار</label>
-      <textarea id="bulkInput" placeholder="0xAAA...,100&#10;0xBBB...,250&#10;0xCCC...,50"></textarea>
+      <label>📥 ایمپورت گروهی — هر خط: آدرس,مقدار,دسته <span style="color:var(--text-mute);font-size:11px;">(دسته اختیاری: community یا nft — پیش‌فرض community)</span></label>
+      <textarea id="bulkInput" placeholder="0xAAA...,100,community&#10;0xBBB...,250,nft&#10;0xCCC...,50"></textarea>
     </div>
     <button class="btn-blue" id="bulkAddBtn">📥 ایمپورت گروهی</button>
   </div>
@@ -682,6 +780,13 @@
         <button class="active" data-filter="all">همه</button>
         <button data-filter="wait">ارسال نشده</button>
         <button data-filter="sent">ارسال شده</button>
+      </div>
+      <div class="cat-filter-wrap">
+        <select id="catFilter">
+          <option value="all">همه دسته‌ها</option>
+          <option value="community">🌐 فقط جامعه</option>
+          <option value="nft">🖼️ فقط NFT</option>
+        </select>
       </div>
       <div class="search-wrap">
         <input id="searchBox" placeholder="جستجوی آدرس..." autocomplete="off" />
@@ -718,11 +823,20 @@
    INDEXEDDB SETUP
    ═══════════════════════════════════════════ */
 const DB_NAME = 'avax_airdrop_manager';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // نسخه جدید برای پشتیبانی از category
 const STORE_ROWS = 'rows';
 const STORE_META = 'meta';
 
 let db = null;
+
+const CAT = {
+  COMMUNITY: 'community',
+  NFT: 'nft'
+};
+const CAT_LABEL = {
+  community: '🌐 جامعه',
+  nft: '🖼️ هولدر NFT'
+};
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -731,14 +845,20 @@ function openDB() {
     req.onupgradeneeded = e => {
       const database = e.target.result;
 
-      // Object store برای ردیف‌ها
       if (!database.objectStoreNames.contains(STORE_ROWS)) {
         const store = database.createObjectStore(STORE_ROWS, { keyPath: 'id' });
         store.createIndex('addressLC', 'addressLC', { unique: true });
         store.createIndex('sent', 'sent', { unique: false });
+        store.createIndex('category', 'category', { unique: false });
+      } else {
+        // ارتقا از نسخه 1 به 2 — اضافه کردن index دسته
+        const tx = e.target.transaction;
+        const store = tx.objectStore(STORE_ROWS);
+        if (!store.indexNames.contains('category')) {
+          store.createIndex('category', 'category', { unique: false });
+        }
       }
 
-      // Object store برای تنظیمات
       if (!database.objectStoreNames.contains(STORE_META)) {
         database.createObjectStore(STORE_META, { keyPath: 'key' });
       }
@@ -826,7 +946,6 @@ function dbBulkDelete(ids) {
   });
 }
 
-/* Meta */
 function metaSet(key, value) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_META, 'readwrite');
@@ -854,12 +973,14 @@ const rowMap = new Map();
 const domMap = new Map();
 let idSeq = 1;
 let currentFilter = 'all';
+let currentCatFilter = 'all';
 let currentSearch = '';
 let dupRowRef = null;
 
 const $ = id => document.getElementById(id);
 const normAddr = a => a.trim().toLowerCase();
 const fmtNum = n => Number(n).toLocaleString('en-US');
+const normalizeCat = c => (c === CAT.NFT ? CAT.NFT : CAT.COMMUNITY);
 
 /* ═══════════════════════════════════════════
    TOAST
@@ -910,15 +1031,49 @@ function updateStats() {
   statsScheduled = true;
   requestAnimationFrame(() => {
     statsScheduled = false;
-    let sent = 0, tokenSum = 0;
+
+    let sent = 0;
+    let totalToken = 0;
+    let communityToken = 0;
+    let nftToken = 0;
+    let communityCount = 0;
+    let nftCount = 0;
+    let communitySent = 0;
+    let nftSent = 0;
+
     for (let i = 0; i < rows.length; i++) {
-      if (rows[i].sent) sent++;
-      tokenSum += rows[i].amountNum || 0;
+      const r = rows[i];
+      if (r.sent) sent++;
+      totalToken += r.amountNum || 0;
+
+      if (r.category === CAT.NFT) {
+        nftToken += r.amountNum || 0;
+        nftCount++;
+        if (r.sent) nftSent++;
+      } else {
+        communityToken += r.amountNum || 0;
+        communityCount++;
+        if (r.sent) communitySent++;
+      }
     }
+
     $('stTotal').textContent = fmtNum(rows.length);
+    $('stTotalSub').textContent = `🌐 ${fmtNum(communityCount)} • 🖼️ ${fmtNum(nftCount)}`;
+
     $('stSent').textContent  = fmtNum(sent);
+    $('stSentSub').textContent = `🌐 ${fmtNum(communitySent)} • 🖼️ ${fmtNum(nftSent)}`;
+
     $('stWait').textContent  = fmtNum(rows.length - sent);
-    $('stToken').textContent = fmtNum(tokenSum);
+    $('stWaitSub').textContent = `🌐 ${fmtNum(communityCount - communitySent)} • 🖼️ ${fmtNum(nftCount - nftSent)}`;
+
+    $('stToken').textContent = fmtNum(totalToken);
+    $('stTokenSub').textContent = `جمع کل`;
+
+    $('stCommunity').textContent = fmtNum(communityToken);
+    $('stCommunitySub').textContent = `${fmtNum(communityCount)} والت`;
+
+    $('stNft').textContent = fmtNum(nftToken);
+    $('stNftSub').textContent = `${fmtNum(nftCount)} والت`;
   });
 }
 
@@ -936,6 +1091,7 @@ function buildRowEl(row) {
       <button class="copy-btn" title="کپی آدرس">📋</button>
     </div>
     <div class="row-amt"><span class="label">مقدار:</span><span class="amt-value"></span></div>
+    <div class="row-cat"><span class="label">دسته:</span><span class="cat-value"></span></div>
     <div class="row-status"></div>
     <div class="row-actions">
       <button class="btn-sm toggle-btn"></button>
@@ -958,6 +1114,15 @@ function updateRowEl(div, row) {
   div.querySelector('.addr-text').textContent = row.address;
   div.querySelector('.amt-value').textContent = formatAmount(row.amountNum);
 
+  // دسته
+  const catCell = div.querySelector('.cat-value');
+  const cat = normalizeCat(row.category);
+  if (cat === CAT.NFT) {
+    catCell.innerHTML = `<span class="cat-badge nft" title="کلیک برای تغییر دسته">🖼️ NFT</span>`;
+  } else {
+    catCell.innerHTML = `<span class="cat-badge community" title="کلیک برای تغییر دسته">🌐 جامعه</span>`;
+  }
+
   const statusCell = div.querySelector('.row-status');
   statusCell.innerHTML = row.sent
     ? '<span class="status-badge ok">✅ ارسال شده</span>'
@@ -976,6 +1141,7 @@ function updateRowEl(div, row) {
 function matchesFilter(row) {
   if (currentFilter === 'wait' && row.sent) return false;
   if (currentFilter === 'sent' && !row.sent) return false;
+  if (currentCatFilter !== 'all' && normalizeCat(row.category) !== currentCatFilter) return false;
   if (currentSearch && !row.addressLC.includes(currentSearch)) return false;
   return true;
 }
@@ -1006,7 +1172,7 @@ function scheduleReindex() {
   });
 }
 
-async function addRow(address, amount, skipSave = false) {
+async function addRow(address, amount, category, skipSave = false) {
   const amtNum = parseFloat(amount);
   const row = {
     id: idSeq++,
@@ -1014,6 +1180,7 @@ async function addRow(address, amount, skipSave = false) {
     addressLC: normAddr(address),
     amount: String(amount).trim(),
     amountNum: amtNum,
+    category: normalizeCat(category),
     sent: false
   };
   rows.push(row);
@@ -1032,8 +1199,16 @@ async function addRow(address, amount, skipSave = false) {
 function showDupAlert(row, newAmount) {
   dupRowRef = row;
   $('dupAmt').textContent = fmtNum(row.amountNum);
-  $('dupStatus').textContent = row.sent ? '✅ ارسال شده' : '⏳ ارسال نشده';
+  $('dupCat').textContent = CAT_LABEL[normalizeCat(row.category)];
   $('dupUpdate').textContent = `🔄 آپدیت به ${newAmount || row.amount}`;
+  const newCat = normalizeCat($('newCat').value);
+  const curCat = normalizeCat(row.category);
+  if (newCat !== curCat) {
+    $('dupCatUpdate').style.display = 'inline-flex';
+    $('dupCatUpdate').textContent = `🔀 تغییر به ${CAT_LABEL[newCat]}`;
+  } else {
+    $('dupCatUpdate').style.display = 'none';
+  }
   $('dupAlert').classList.add('show');
 }
 function hideDupAlert() {
@@ -1056,6 +1231,17 @@ $('newAmt').addEventListener('input', () => {
   const v = $('newAmt').value.trim() || dupRowRef.amount;
   $('dupUpdate').textContent = `🔄 آپدیت به ${v}`;
 });
+$('newCat').addEventListener('change', () => {
+  if (!dupRowRef) return;
+  const newCat = normalizeCat($('newCat').value);
+  const curCat = normalizeCat(dupRowRef.category);
+  if (newCat !== curCat) {
+    $('dupCatUpdate').style.display = 'inline-flex';
+    $('dupCatUpdate').textContent = `🔀 تغییر به ${CAT_LABEL[newCat]}`;
+  } else {
+    $('dupCatUpdate').style.display = 'none';
+  }
+});
 
 $('dupUpdate').onclick = async () => {
   if (!dupRowRef) return;
@@ -1073,11 +1259,29 @@ $('dupUpdate').onclick = async () => {
   $('newAddr').focus();
   hideDupAlert();
 };
+
+$('dupCatUpdate').onclick = async () => {
+  if (!dupRowRef) return;
+  const newCat = normalizeCat($('newCat').value);
+  dupRowRef.category = newCat;
+  const div = domMap.get(dupRowRef.id);
+  if (div) updateRowEl(div, dupRowRef);
+  updateStats();
+  applyFilters();
+  try { await dbPut(dupRowRef); } catch (e) { console.warn(e); }
+  toast(`🔀 دسته تغییر کرد به ${CAT_LABEL[newCat]}`, 'success');
+  $('newAddr').value = '';
+  $('newAmt').value = '';
+  $('newAddr').focus();
+  hideDupAlert();
+};
+
 $('dupClose').onclick = hideDupAlert;
 
 $('addBtn').onclick = async () => {
   const addr = $('newAddr').value.trim();
   const amt = $('newAmt').value.trim();
+  const cat = normalizeCat($('newCat').value);
   if (!addr) { toast('آدرس را وارد کنید', 'err'); return; }
   if (!amt || parseFloat(amt) <= 0) { toast('مقدار معتبر وارد کنید', 'err'); return; }
   if (rowMap.has(normAddr(addr))) {
@@ -1085,8 +1289,8 @@ $('addBtn').onclick = async () => {
     toast('⚠️ این آدرس قبلاً ثبت شده', 'warn');
     return;
   }
-  await addRow(addr, amt);
-  toast('✅ والت اضافه شد', 'success');
+  await addRow(addr, amt, cat);
+  toast(`✅ والت ${CAT_LABEL[cat]} اضافه شد`, 'success');
   $('newAddr').value = '';
   $('newAmt').value = '';
   $('newAddr').focus();
@@ -1112,9 +1316,11 @@ $('bulkAddBtn').onclick = async () => {
     if (parts.length < 2) { skipped++; continue; }
     const addr = parts[0].trim();
     const amt = parts[1].trim();
+    const catRaw = (parts[2] || '').trim().toLowerCase();
     if (!addr || !amt || parseFloat(amt) <= 0) { skipped++; continue; }
     if (rowMap.has(normAddr(addr))) { dup++; continue; }
 
+    const cat = catRaw === 'nft' ? CAT.NFT : CAT.COMMUNITY;
     const amtNum = parseFloat(amt);
     const row = {
       id: idSeq++,
@@ -1122,6 +1328,7 @@ $('bulkAddBtn').onclick = async () => {
       addressLC: normAddr(addr),
       amount: String(amt).trim(),
       amountNum: amtNum,
+      category: cat,
       sent: false
     };
     rows.push(row);
@@ -1171,6 +1378,17 @@ $('rowList').addEventListener('click', async e => {
     return;
   }
 
+  // کلیک روی برچسب دسته → تغییر سریع
+  if (e.target.closest('.cat-badge')) {
+    row.category = normalizeCat(row.category) === CAT.NFT ? CAT.COMMUNITY : CAT.NFT;
+    updateRowEl(card, row);
+    updateStats();
+    applyFilters();
+    try { await dbPut(row); } catch (err) { console.warn(err); }
+    toast(`🔀 دسته: ${CAT_LABEL[row.category]}`, 'info', 1500);
+    return;
+  }
+
   if (e.target.closest('.toggle-btn')) {
     row.sent = !row.sent;
     updateRowEl(card, row);
@@ -1205,6 +1423,13 @@ document.querySelectorAll('.segmented button').forEach(btn => {
     try { await metaSet('currentFilter', currentFilter); } catch {}
   };
 });
+
+$('catFilter').addEventListener('change', async e => {
+  currentCatFilter = e.target.value;
+  applyFilters();
+  try { await metaSet('currentCatFilter', currentCatFilter); } catch {}
+});
+
 let searchTimer = null;
 $('searchBox').addEventListener('input', e => {
   clearTimeout(searchTimer);
@@ -1268,8 +1493,8 @@ $('clearSentBtn').onclick = async () => {
 
 $('exportBtn').onclick = () => {
   if (!rows.length) { toast('لیست خالی است', 'warn'); return; }
-  const csv = 'address,amount,status\n' + rows.map(r =>
-    `${r.address},${r.amount},${r.sent ? 'sent' : 'pending'}`
+  const csv = 'address,amount,category,status\n' + rows.map(r =>
+    `${r.address},${r.amount},${normalizeCat(r.category)},${r.sent ? 'sent' : 'pending'}`
   ).join('\n');
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
@@ -1286,7 +1511,6 @@ async function init() {
   try {
     await openDB();
 
-    // خوندن ردیف‌ها
     const dbRows = await dbGetAll();
     dbRows.sort((a, b) => a.id - b.id);
 
@@ -1299,6 +1523,7 @@ async function init() {
         addressLC: r.addressLC || normAddr(r.address),
         amount: String(r.amount),
         amountNum: amtNum,
+        category: normalizeCat(r.category),
         sent: !!r.sent
       };
       rows.push(row);
@@ -1308,14 +1533,19 @@ async function init() {
 
     idSeq = rows.length ? Math.max(...rows.map(r => r.id)) + 1 : 1;
 
-    // خوندن فیلتر و جستجو
     const savedFilter = await metaGet('currentFilter');
+    const savedCatFilter = await metaGet('currentCatFilter');
     const savedSearch = await metaGet('currentSearch');
+
     if (savedFilter) {
       currentFilter = savedFilter;
       document.querySelectorAll('.segmented button').forEach(b => {
         b.classList.toggle('active', b.dataset.filter === currentFilter);
       });
+    }
+    if (savedCatFilter) {
+      currentCatFilter = savedCatFilter;
+      $('catFilter').value = savedCatFilter;
     }
     if (savedSearch) {
       currentSearch = savedSearch;
@@ -1339,4 +1569,4 @@ async function init() {
 init();
 </script>
 </body>
-  </html>
+ </html>
