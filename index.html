@@ -203,6 +203,11 @@
     font-weight: 500;
     margin-bottom: 7px;
   }
+  .field .opt {
+    color: var(--text-mute);
+    font-size: 11px;
+    font-weight: 400;
+  }
 
   input, textarea, select {
     width: 100%;
@@ -238,6 +243,14 @@
     font-size: 12.5px;
     line-height: 1.7;
   }
+  textarea.note-input {
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 13px;
+    min-height: auto;
+    height: 44px;
+    resize: none;
+    line-height: 1.5;
+  }
 
   .add-form {
     display: grid;
@@ -246,7 +259,23 @@
   }
   @media (min-width: 640px) {
     .add-form {
-      grid-template-columns: 1fr 130px 160px auto;
+      grid-template-columns: 1fr 120px 150px auto;
+      align-items: end;
+    }
+    .add-form .field.full-width {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .add-form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  @media (min-width: 640px) {
+    .add-form-actions {
+      grid-template-columns: 1fr auto;
       align-items: end;
     }
   }
@@ -402,12 +431,13 @@
       "idx  status actions"
       "addr addr   addr"
       "cat  cat    cat"
-      "amt  amt    amt";
+      "amt  amt    amt"
+      "note note   note";
     gap: 10px;
     align-items: center;
     transition: background .15s, border-color .15s;
     content-visibility: auto;
-    contain-intrinsic-size: auto 140px;
+    contain-intrinsic-size: auto 160px;
   }
   .row-card:hover { background: rgba(0,0,0,.3); border-color: var(--border-2); }
   .row-card.sent {
@@ -422,7 +452,9 @@
   @media (min-width: 700px) {
     .row-card {
       grid-template-columns: 40px 1fr 130px 120px 130px 200px;
-      grid-template-areas: "idx addr amt cat status actions";
+      grid-template-areas:
+        "idx addr amt cat status actions"
+        "idx note note note note note";
       padding: 12px 16px;
     }
   }
@@ -437,6 +469,7 @@
     font-weight: 600;
     color: var(--text-dim);
     font-feature-settings: "tnum";
+    align-self: start;
   }
 
   .addr-wrap {
@@ -596,6 +629,60 @@
   }
   @media (min-width: 700px) {
     .row-actions { justify-content: center; }
+  }
+
+  /* Note / description row */
+  .row-note {
+    grid-area: note;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,.03);
+    border: 1px dashed rgba(255,255,255,.1);
+    border-radius: 9px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all .15s;
+    min-height: 36px;
+  }
+  .row-note:hover {
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.2);
+    color: var(--text);
+  }
+  .row-note .note-icon {
+    font-size: 13px;
+    opacity: .7;
+    flex-shrink: 0;
+  }
+  .row-note .note-text {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+    line-height: 1.5;
+  }
+  .row-note.empty {
+    color: var(--text-mute);
+    font-style: italic;
+    opacity: .6;
+  }
+  .row-note.empty:hover {
+    opacity: .9;
+    color: var(--text-dim);
+  }
+  .row-note.editing {
+    background: rgba(59,130,246,.08);
+    border-style: solid;
+    border-color: rgba(59,130,246,.3);
+    padding: 6px;
+  }
+  .row-note.editing input {
+    padding: 8px 12px;
+    font-size: 12.5px;
+    font-family: 'Vazirmatn', sans-serif;
+    background: rgba(0,0,0,.4);
   }
 
   .empty-state {
@@ -981,6 +1068,11 @@
         </select>
       </div>
       <button class="btn-success" id="addBtn">افزودن</button>
+
+      <div class="field full-width" style="margin:0;">
+        <label>📝 توضیحات <span class="opt">(اختیاری)</span></label>
+        <textarea id="newNote" class="note-input" placeholder="مثلاً: خریدار اولیه، ایردراپ فاز ۱، ..." maxlength="500"></textarea>
+      </div>
     </div>
 
     <div class="dup-alert" id="dupAlert">
@@ -1002,8 +1094,8 @@
     </div>
 
     <div class="field" style="margin-top:18px;">
-      <label>📥 ایمپورت گروهی — هر خط: آدرس,مقدار,دسته <span style="color:var(--text-mute);font-size:11px;">(دسته اختیاری: community یا nft — پیش‌فرض community)</span></label>
-      <textarea id="bulkInput" placeholder="0xAAA...,100,community&#10;0xBBB...,250,nft&#10;0xCCC...,50"></textarea>
+      <label>📥 ایمپورت گروهی — هر خط: آدرس,مقدار,دسته,توضیحات <span class="opt">(دسته و توضیحات اختیاری)</span></label>
+      <textarea id="bulkInput" placeholder="0xAAA...,100,community,خریدار اولیه&#10;0xBBB...,250,nft,هولدر لول ۳&#10;0xCCC...,50"></textarea>
     </div>
     <button class="btn-blue" id="bulkAddBtn">📥 ایمپورت گروهی</button>
   </div>
@@ -1028,7 +1120,7 @@
         </select>
       </div>
       <div class="search-wrap">
-        <input id="searchBox" placeholder="جستجوی آدرس..." autocomplete="off" />
+        <input id="searchBox" placeholder="جستجو در آدرس یا توضیحات..." autocomplete="off" />
       </div>
       <button class="btn-ghost btn-sm" id="exportBtn">📤 CSV</button>
       <button class="btn-ghost btn-sm" id="clearSentBtn">🧹 حذف ارسال‌شده</button>
@@ -1100,7 +1192,7 @@
    INDEXEDDB SETUP
    ═══════════════════════════════════════════ */
 const DB_NAME = 'avax_airdrop_manager';
-const DB_VERSION = 3; // نسخه 3: پشتیبانی از یک آدرس در چند دسته
+const DB_VERSION = 4; // نسخه 4: پشتیبانی از فیلد note
 const STORE_ROWS = 'rows';
 const STORE_META = 'meta';
 
@@ -1119,27 +1211,22 @@ function openDB() {
       const tx = e.target.transaction;
 
       if (!database.objectStoreNames.contains(STORE_ROWS)) {
-        // ساخت اولیه
         const store = database.createObjectStore(STORE_ROWS, { keyPath: 'id' });
         store.createIndex('addressLC', 'addressLC', { unique: false });
         store.createIndex('sent', 'sent', { unique: false });
         store.createIndex('category', 'category', { unique: false });
         store.createIndex('addrCat', 'addrCat', { unique: true });
       } else {
-        // ارتقا از نسخه قدیمی
         const store = tx.objectStore(STORE_ROWS);
 
-        // اگر ایندکس addressLC قدیمی unique است، حذفش کن و دوباره بساز
+        // حذف ایندکس unique قدیمی addressLC (در صورت وجود)
         if (store.indexNames.contains('addressLC')) {
           const idx = store.index('addressLC');
-          if (idx.unique) {
-            store.deleteIndex('addressLC');
-          }
+          if (idx.unique) store.deleteIndex('addressLC');
         }
         if (!store.indexNames.contains('addressLC')) {
           store.createIndex('addressLC', 'addressLC', { unique: false });
         }
-
         if (!store.indexNames.contains('sent')) {
           store.createIndex('sent', 'sent', { unique: false });
         }
@@ -1147,14 +1234,13 @@ function openDB() {
           store.createIndex('category', 'category', { unique: false });
         }
 
-        // ساخت ایندکس ترکیبی addrCat (اگر قبلاً نبوده)
         const hadAddrCat = store.indexNames.contains('addrCat');
         if (!hadAddrCat) {
           store.createIndex('addrCat', 'addrCat', { unique: true });
         }
 
-        // مهاجرت داده‌های قدیمی: اضافه کردن addrCat
-        if (!hadAddrCat || oldVersion < 3) {
+        // مهاجرت: اضافه کردن addrCat و note
+        if (!hadAddrCat || oldVersion < 4) {
           const getAllReq = store.getAll();
           getAllReq.onsuccess = () => {
             const all = getAllReq.result || [];
@@ -1162,13 +1248,13 @@ function openDB() {
               const cat = (r.category === 'nft') ? 'nft' : 'community';
               const addrLC = r.addressLC || (r.address ? r.address.toLowerCase() : '');
               const newAddrCat = addrLC + '::' + cat;
-              if (r.addrCat !== newAddrCat || r.category !== cat) {
-                r.category = cat;
-                r.addrCat = newAddrCat;
-                store.put(r);
-              }
+              let changed = false;
+              if (r.addrCat !== newAddrCat) { r.addrCat = newAddrCat; changed = true; }
+              if (r.category !== cat) { r.category = cat; changed = true; }
+              if (typeof r.note !== 'string') { r.note = ''; changed = true; }
+              if (changed) store.put(r);
             });
-            console.log(`[Migration v3] Processed ${all.length} rows`);
+            console.log(`[Migration v4] Processed ${all.length} rows (added note field)`);
           };
         }
       }
@@ -1279,7 +1365,7 @@ function metaDelete(key) {
    STATE
    ═══════════════════════════════════════════ */
 const rows = [];
-const rowMap = new Map(); // کلید: addrCat => (addressLC + '::' + category)
+const rowMap = new Map();
 const domMap = new Map();
 let idSeq = 1;
 let currentFilter = 'all';
@@ -1288,6 +1374,7 @@ let currentSearch = '';
 let dupRowRef = null;
 let fingerprintEnabled = false;
 let credentialIdB64 = null;
+let editingNoteId = null;
 
 const $ = id => document.getElementById(id);
 const normAddr = a => a.trim().toLowerCase();
@@ -1336,16 +1423,14 @@ $('modalBg').onclick = e => {
 };
 
 /* ═══════════════════════════════════════════
-   AUTH: WebAuthn (Web) + Native Biometric (Capacitor)
+   AUTH
    ═══════════════════════════════════════════ */
 const isNative = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 const NativeBiometric = () => (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBiometric) || null;
 
 const Auth = {
   async isAvailable() {
-    if (isNative()) {
-      return !!NativeBiometric();
-    }
+    if (isNative()) return !!NativeBiometric();
     return !!(window.PublicKeyCredential &&
       navigator.credentials &&
       navigator.credentials.create &&
@@ -1707,6 +1792,10 @@ function buildRowEl(row) {
       <button class="btn-sm toggle-btn"></button>
       <button class="btn-sm btn-ghost del-btn">🗑️</button>
     </div>
+    <div class="row-note" title="کلیک برای ویرایش توضیحات">
+      <span class="note-icon">📝</span>
+      <span class="note-text"></span>
+    </div>
   `;
   updateRowEl(div, row);
   return div;
@@ -1745,13 +1834,36 @@ function updateRowEl(div, row) {
     toggleBtn.className = 'btn-sm toggle-btn btn-success';
     toggleBtn.textContent = '✅ ارسال شد';
   }
+
+  // Note
+  updateNoteEl(div, row);
+}
+
+function updateNoteEl(div, row) {
+  const noteEl = div.querySelector('.row-note');
+  if (!noteEl) return;
+  if (editingNoteId === row.id) return; // در حال ویرایش دستکاری نکن
+
+  const text = (row.note || '').trim();
+  if (text) {
+    noteEl.classList.remove('empty');
+    noteEl.querySelector('.note-text').textContent = text;
+  } else {
+    noteEl.classList.add('empty');
+    noteEl.querySelector('.note-text').textContent = 'برای افزودن توضیحات کلیک کنید...';
+  }
 }
 
 function matchesFilter(row) {
   if (currentFilter === 'wait' && row.sent) return false;
   if (currentFilter === 'sent' && !row.sent) return false;
   if (currentCatFilter !== 'all' && normalizeCat(row.category) !== currentCatFilter) return false;
-  if (currentSearch && !row.addressLC.includes(currentSearch)) return false;
+  if (currentSearch) {
+    const q = currentSearch;
+    const inAddr = row.addressLC.includes(q);
+    const inNote = (row.note || '').toLowerCase().includes(q);
+    if (!inAddr && !inNote) return false;
+  }
   return true;
 }
 
@@ -1781,7 +1893,7 @@ function scheduleReindex() {
   });
 }
 
-async function addRow(address, amount, category, skipSave = false) {
+async function addRow(address, amount, category, note = '', skipSave = false) {
   const amtNum = parseFloat(amount);
   const addrLC = normAddr(address);
   const cat = normalizeCat(category);
@@ -1793,6 +1905,7 @@ async function addRow(address, amount, category, skipSave = false) {
     amountNum: amtNum,
     category: cat,
     addrCat: makeAddrCat(addrLC, cat),
+    note: String(note || '').trim(),
     sent: false
   };
   rows.push(row);
@@ -1806,7 +1919,7 @@ async function addRow(address, amount, category, skipSave = false) {
 }
 
 /* ═══════════════════════════════════════════
-   DUPLICATE (فقط در همون دسته)
+   DUPLICATE
    ═══════════════════════════════════════════ */
 function showDupAlert(row, newAmount) {
   dupRowRef = row;
@@ -1854,6 +1967,7 @@ $('dupUpdate').onclick = async () => {
   toast(`✅ آپدیت شد به ${fmtNum(v)}`, 'success');
   $('newAddr').value = '';
   $('newAmt').value = '';
+  $('newNote').value = '';
   $('newAddr').focus();
   hideDupAlert();
 };
@@ -1864,6 +1978,7 @@ $('addBtn').onclick = async () => {
   const addr = $('newAddr').value.trim();
   const amt = $('newAmt').value.trim();
   const cat = normalizeCat($('newCat').value);
+  const note = $('newNote').value.trim();
   if (!addr) { toast('آدرس را وارد کنید', 'err'); return; }
   if (!amt || parseFloat(amt) <= 0) { toast('مقدار معتبر وارد کنید', 'err'); return; }
 
@@ -1874,18 +1989,19 @@ $('addBtn').onclick = async () => {
     return;
   }
 
-  await addRow(addr, amt, cat);
+  await addRow(addr, amt, cat, note);
   toast(`✅ والت ${CAT_LABEL[cat]} اضافه شد`, 'success');
   $('newAddr').value = '';
   $('newAmt').value = '';
+  $('newNote').value = '';
   $('newAddr').focus();
   hideDupAlert();
 };
 $('newAddr').addEventListener('keydown', e => { if (e.key === 'Enter') $('newAmt').focus(); });
-$('newAmt').addEventListener('keydown', e => { if (e.key === 'Enter') $('addBtn').click(); });
+$('newAmt').addEventListener('keydown', e => { if (e.key === 'Enter') $('newNote').focus(); });
 
 /* ═══════════════════════════════════════════
-   BULK IMPORT
+   BULK IMPORT (پشتیبانی از ستون چهارم توضیحات)
    ═══════════════════════════════════════════ */
 $('bulkAddBtn').onclick = async () => {
   const raw = $('bulkInput').value.trim();
@@ -1897,11 +2013,14 @@ $('bulkAddBtn').onclick = async () => {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
+    // جدا کردن با کاما/سمی‌کالن/تب — حداکثر 4 بخش
     const parts = line.split(/[,;\t]/);
     if (parts.length < 2) { skipped++; continue; }
     const addr = parts[0].trim();
     const amt = parts[1].trim();
     const catRaw = (parts[2] || '').trim().toLowerCase();
+    // توضیحات = هرچی بعد از کاما سوم بود (حتی اگه خودش کاما داشته باشه)
+    const note = parts.slice(3).join(',').trim();
     if (!addr || !amt || parseFloat(amt) <= 0) { skipped++; continue; }
 
     const cat = catRaw === 'nft' ? CAT.NFT : CAT.COMMUNITY;
@@ -1919,6 +2038,7 @@ $('bulkAddBtn').onclick = async () => {
       amountNum: amtNum,
       category: cat,
       addrCat: addrCat,
+      note: note,
       sent: false
     };
     rows.push(row);
@@ -1937,6 +2057,66 @@ $('bulkAddBtn').onclick = async () => {
 };
 
 /* ═══════════════════════════════════════════
+   NOTE EDITING
+   ═══════════════════════════════════════════ */
+async function startNoteEdit(row) {
+  if (editingNoteId !== null) return;
+  const div = domMap.get(row.id);
+  if (!div) return;
+  const noteEl = div.querySelector('.row-note');
+  if (!noteEl) return;
+
+  editingNoteId = row.id;
+
+  const current = row.note || '';
+  noteEl.classList.add('editing');
+  noteEl.classList.remove('empty');
+  noteEl.innerHTML = '';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = current;
+  input.placeholder = 'توضیحات را وارد کنید...';
+  input.maxLength = 500;
+  input.style.flex = '1';
+  noteEl.appendChild(input);
+
+  setTimeout(() => {
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, 50);
+
+  let finished = false;
+
+  const commit = async (save) => {
+    if (finished) return;
+    finished = true;
+    editingNoteId = null;
+    const newVal = save ? input.value.trim() : current;
+
+    if (save && newVal !== current) {
+      row.note = newVal;
+      try { await dbPut(row); } catch (e) { console.warn(e); }
+      toast('📝 توضیحات ذخیره شد', 'success', 1500);
+    }
+
+    // بازسازی نمایش
+    noteEl.classList.remove('editing');
+    noteEl.innerHTML = `<span class="note-icon">📝</span><span class="note-text"></span>`;
+    updateNoteEl(div, row);
+
+    // اگه توضیحات خالی شد و search active است، فیلتر رو دوباره اعمال کن
+    if (currentSearch) applyFilters();
+  };
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+  });
+  input.addEventListener('blur', () => commit(true));
+}
+
+/* ═══════════════════════════════════════════
    ROW ACTIONS
    ═══════════════════════════════════════════ */
 $('rowList').addEventListener('click', async e => {
@@ -1945,6 +2125,13 @@ $('rowList').addEventListener('click', async e => {
   const id = parseInt(card.dataset.id);
   const row = rows.find(r => r.id === id);
   if (!row) return;
+
+  // Note edit
+  if (e.target.closest('.row-note')) {
+    if (editingNoteId === row.id) return;
+    startNoteEdit(row);
+    return;
+  }
 
   if (e.target.closest('.copy-btn') || e.target.classList.contains('addr-text')) {
     const btn = card.querySelector('.copy-btn');
@@ -2072,8 +2259,16 @@ $('clearSentBtn').onclick = async () => {
 
 $('exportBtn').onclick = () => {
   if (!rows.length) { toast('لیست خالی است', 'warn'); return; }
-  const csv = 'address,amount,category,status\n' + rows.map(r =>
-    `${r.address},${r.amount},${normalizeCat(r.category)},${r.sent ? 'sent' : 'pending'}`
+  // escape توضیحات برای CSV
+  const esc = v => {
+    const s = String(v == null ? '' : v);
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+  const csv = 'address,amount,category,status,note\n' + rows.map(r =>
+    `${esc(r.address)},${esc(r.amount)},${esc(normalizeCat(r.category))},${r.sent ? 'sent' : 'pending'},${esc(r.note || '')}`
   ).join('\n');
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
@@ -2106,6 +2301,7 @@ async function init() {
         amountNum: amtNum,
         category: cat,
         addrCat: r.addrCat || makeAddrCat(addrLC, cat),
+        note: typeof r.note === 'string' ? r.note : '',
         sent: !!r.sent
       };
       rows.push(row);
