@@ -252,6 +252,15 @@
     line-height: 1.5;
   }
 
+  /* ورودی عددی با جداکننده */
+  input.amount-input {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: .5px;
+    direction: ltr;
+    text-align: left;
+    font-feature-settings: "tnum";
+  }
+
   .add-form {
     display: grid;
     grid-template-columns: 1fr;
@@ -264,19 +273,6 @@
     }
     .add-form .field.full-width {
       grid-column: 1 / -1;
-    }
-  }
-
-  .add-form-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-    margin-top: 12px;
-  }
-  @media (min-width: 640px) {
-    .add-form-actions {
-      grid-template-columns: 1fr auto;
-      align-items: end;
     }
   }
 
@@ -451,7 +447,7 @@
 
   @media (min-width: 700px) {
     .row-card {
-      grid-template-columns: 40px 1fr 130px 120px 130px 200px;
+      grid-template-columns: 40px 1fr 140px 120px 130px 200px;
       grid-template-areas:
         "idx addr amt cat status actions"
         "idx note note note note note";
@@ -631,7 +627,6 @@
     .row-actions { justify-content: center; }
   }
 
-  /* Note / description row */
   .row-note {
     grid-area: note;
     display: flex;
@@ -1058,7 +1053,7 @@
       </div>
       <div class="field" style="margin:0;">
         <label>تعداد توکن</label>
-        <input id="newAmt" type="number" step="any" placeholder="100" autocomplete="off" />
+        <input id="newAmt" class="amount-input" type="text" inputmode="decimal" placeholder="1,000" autocomplete="off" />
       </div>
       <div class="field" style="margin:0;">
         <label>دسته‌بندی</label>
@@ -1094,8 +1089,8 @@
     </div>
 
     <div class="field" style="margin-top:18px;">
-      <label>📥 ایمپورت گروهی — هر خط: آدرس,مقدار,دسته,توضیحات <span class="opt">(دسته و توضیحات اختیاری)</span></label>
-      <textarea id="bulkInput" placeholder="0xAAA...,100,community,خریدار اولیه&#10;0xBBB...,250,nft,هولدر لول ۳&#10;0xCCC...,50"></textarea>
+      <label>📥 ایمپورت گروهی — هر خط: آدرس,مقدار,دسته,توضیحات <span class="opt">(دسته و توضیحات اختیاری — کاما داخل اعداد مجاز است)</span></label>
+      <textarea id="bulkInput" placeholder="0xAAA...,1,000,community,خریدار اولیه&#10;0xBBB...,2,500,nft,هولدر لول ۳&#10;0xCCC...,500"></textarea>
     </div>
     <button class="btn-blue" id="bulkAddBtn">📥 ایمپورت گروهی</button>
   </div>
@@ -1161,9 +1156,22 @@
         <div class="toggle" id="fingerprintToggle"></div>
       </div>
       <div class="settings-section-desc">
-        با فعال‌سازی این گزینه، هنگام باز کردن اپ باید هویت خود را با اثر انگشت (یا Windows Hello / Touch ID / Face ID) تأیید کنید.
+        با فعال‌سازی این گزینه، هنگام باز کردن اپ باید هویت خود را با اثر انگشت تأیید کنید.
       </div>
       <div class="settings-note" id="webauthnStatus"></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <div class="settings-section-title">
+          <div class="s-icon">🔢</div>
+          <span>جداکننده اعداد</span>
+        </div>
+        <div class="toggle on" id="separatorToggle"></div>
+      </div>
+      <div class="settings-section-desc">
+        نمایش اعداد با کاما (مثلاً ۱,۰۰۰,۰۰۰).
+      </div>
     </div>
 
     <div class="settings-section">
@@ -1192,7 +1200,7 @@
    INDEXEDDB SETUP
    ═══════════════════════════════════════════ */
 const DB_NAME = 'avax_airdrop_manager';
-const DB_VERSION = 4; // نسخه 4: پشتیبانی از فیلد note
+const DB_VERSION = 5;
 const STORE_ROWS = 'rows';
 const STORE_META = 'meta';
 
@@ -1219,7 +1227,6 @@ function openDB() {
       } else {
         const store = tx.objectStore(STORE_ROWS);
 
-        // حذف ایندکس unique قدیمی addressLC (در صورت وجود)
         if (store.indexNames.contains('addressLC')) {
           const idx = store.index('addressLC');
           if (idx.unique) store.deleteIndex('addressLC');
@@ -1239,7 +1246,6 @@ function openDB() {
           store.createIndex('addrCat', 'addrCat', { unique: true });
         }
 
-        // مهاجرت: اضافه کردن addrCat و note
         if (!hadAddrCat || oldVersion < 4) {
           const getAllReq = store.getAll();
           getAllReq.onsuccess = () => {
@@ -1254,7 +1260,6 @@ function openDB() {
               if (typeof r.note !== 'string') { r.note = ''; changed = true; }
               if (changed) store.put(r);
             });
-            console.log(`[Migration v4] Processed ${all.length} rows (added note field)`);
           };
         }
       }
@@ -1375,12 +1380,69 @@ let dupRowRef = null;
 let fingerprintEnabled = false;
 let credentialIdB64 = null;
 let editingNoteId = null;
+let useSeparator = true; // تنظیمات جداکننده اعداد
 
 const $ = id => document.getElementById(id);
 const normAddr = a => a.trim().toLowerCase();
-const fmtNum = n => Number(n).toLocaleString('en-US');
 const normalizeCat = c => (c === CAT.NFT ? CAT.NFT : CAT.COMMUNITY);
 const makeAddrCat = (addressLC, category) => addressLC + '::' + normalizeCat(category);
+
+/* ═══════════════════════════════════════════
+   NUMBER FORMATTING (جداکننده اعداد)
+   ═══════════════════════════════════════════ */
+
+// جدا کردن بخش صحیح با کاما (حفظ اعشار)
+function formatAmount(num) {
+  if (!isFinite(num)) return '0';
+  if (!useSeparator) {
+    // بدون جداکننده: نمایش خام
+    if (Number.isInteger(num)) return String(num);
+    return String(num);
+  }
+  const str = String(num);
+  // جدا کردن بخش صحیح و اعشاری
+  const parts = str.split('.');
+  const intPart = parts[0];
+  const decPart = parts[1];
+  // فقط بخش صحیح رو با کاما جدا کن
+  const sign = intPart.startsWith('-') ? '-' : '';
+  const absInt = sign ? intPart.slice(1) : intPart;
+  const formatted = absInt.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const result = sign + formatted;
+  if (decPart !== undefined) {
+    return result + '.' + decPart;
+  }
+  return result;
+}
+
+// تبدیل رشته با کاما به عدد (پاک کردن کاماها)
+function parseFormattedAmount(str) {
+  if (str == null) return NaN;
+  const cleaned = String(str).replace(/,/g, '').trim();
+  if (!cleaned) return NaN;
+  return parseFloat(cleaned);
+}
+
+// فرمت کردن عدد برای نمایش در input (با کاما)
+function formatForInput(value) {
+  if (value === '' || value == null) return '';
+  const str = String(value);
+  // اگه کاربر در حال تایپ "." هست یا با "." تموم می‌شه، دست نزن
+  if (str.endsWith('.')) return str;
+  const parts = str.split('.');
+  if (parts.length > 2) return str; // چند نقطه → ولش کن
+  const intPart = parts[0].replace(/,/g, '');
+  const decPart = parts[1];
+  if (!/^-?\d*$/.test(intPart)) return str; // اگه عدد نبود، ولش کن
+  if (intPart === '' || intPart === '-') return str;
+  const sign = intPart.startsWith('-') ? '-' : '';
+  const absInt = sign ? intPart.slice(1) : intPart;
+  const formatted = absInt.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const result = sign + formatted;
+  return decPart !== undefined ? result + '.' + decPart : result;
+}
+
+const fmtNum = n => formatAmount(Number(n));
 
 /* ═══════════════════════════════════════════
    TOAST
@@ -1481,11 +1543,9 @@ const Auth = {
     if (isNative()) {
       const nb = NativeBiometric();
       if (!nb) throw new Error('پلاگین بایومتریک در دسترس نیست');
-
       const avail = await nb.isAvailable();
       const ok = (typeof avail === 'boolean') ? avail : !!(avail && avail.isAvailable);
       if (!ok) throw new Error('دستگاه شما اثر انگشت / بیومتریک ندارد');
-
       try {
         await nb.verifyIdentity({
           reason: 'برای فعال‌سازی قفل، هویت خود را تأیید کنید',
@@ -1496,7 +1556,6 @@ const Auth = {
       } catch (e) {
         throw new Error('فعال‌سازی لغو شد');
       }
-
       return 'native-biometric-' + Date.now().toString(36);
     }
 
@@ -1511,11 +1570,7 @@ const Auth = {
       publicKey: {
         challenge,
         rp: { name: 'Avalanche Airdrop Manager', id: location.hostname },
-        user: {
-          id: userId,
-          name: 'airdrop-user',
-          displayName: 'مدیر ایردراپ'
-        },
+        user: { id: userId, name: 'airdrop-user', displayName: 'مدیر ایردراپ' },
         pubKeyCredParams: [
           { alg: -7, type: 'public-key' },
           { alg: -257, type: 'public-key' }
@@ -1538,7 +1593,6 @@ const Auth = {
     if (isNative()) {
       const nb = NativeBiometric();
       if (!nb) throw new Error('پلاگین بایومتریک در دسترس نیست');
-
       try {
         await nb.verifyIdentity({
           reason: 'برای ورود به اپ، هویت خود را تأیید کنید',
@@ -1560,11 +1614,7 @@ const Auth = {
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge,
-        allowCredentials: [{
-          id: idBuffer,
-          type: 'public-key',
-          transports: ['internal']
-        }],
+        allowCredentials: [{ id: idBuffer, type: 'public-key', transports: ['internal'] }],
         userVerification: 'required',
         timeout: 60000
       }
@@ -1618,8 +1668,14 @@ function syncFingerprintToggle() {
   t.classList.toggle('on', fingerprintEnabled);
 }
 
+function syncSeparatorToggle() {
+  const t = $('separatorToggle');
+  t.classList.toggle('on', useSeparator);
+}
+
 $('settingsBtn').onclick = () => {
   syncFingerprintToggle();
+  syncSeparatorToggle();
   updateAuthStatus();
   $('settingsBg').classList.add('show');
 };
@@ -1661,6 +1717,35 @@ $('fingerprintToggle').onclick = async () => {
     }
   }
 };
+
+$('separatorToggle').onclick = async () => {
+  useSeparator = !useSeparator;
+  await metaSet('useSeparator', useSeparator);
+  syncSeparatorToggle();
+  toast(useSeparator ? '✅ جداکننده فعال شد' : '⏸️ جداکننده غیرفعال شد', 'info', 1800);
+  // رفرش همه اعداد نمایش داده شده
+  refreshAllNumbers();
+};
+
+function refreshAllNumbers() {
+  // آمار
+  updateStats();
+  // کارت‌ها
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const div = domMap.get(r.id);
+    if (div) {
+      const amtEl = div.querySelector('.amt-value');
+      if (amtEl) amtEl.textContent = formatAmount(r.amountNum);
+    }
+  }
+  // input فرم افزودن (اگه مقداری داره)
+  const inp = $('newAmt');
+  if (inp && inp.value) {
+    const parsed = parseFormattedAmount(inp.value);
+    if (!isNaN(parsed)) inp.value = formatAmount(parsed);
+  }
+}
 
 $('resetAuthBtn').onclick = async () => {
   const ok = await confirmModal(
@@ -1801,13 +1886,6 @@ function buildRowEl(row) {
   return div;
 }
 
-function formatAmount(num) {
-  if (!isFinite(num)) return '0';
-  if (Number.isInteger(num)) return num.toLocaleString('en-US');
-  const [int, dec] = num.toString().split('.');
-  return Number(int).toLocaleString('en-US') + '.' + dec;
-}
-
 function updateRowEl(div, row) {
   div.classList.toggle('sent', row.sent);
   div.querySelector('.addr-text').textContent = row.address;
@@ -1835,14 +1913,13 @@ function updateRowEl(div, row) {
     toggleBtn.textContent = '✅ ارسال شد';
   }
 
-  // Note
   updateNoteEl(div, row);
 }
 
 function updateNoteEl(div, row) {
   const noteEl = div.querySelector('.row-note');
   if (!noteEl) return;
-  if (editingNoteId === row.id) return; // در حال ویرایش دستکاری نکن
+  if (editingNoteId === row.id) return;
 
   const text = (row.note || '').trim();
   if (text) {
@@ -1894,14 +1971,14 @@ function scheduleReindex() {
 }
 
 async function addRow(address, amount, category, note = '', skipSave = false) {
-  const amtNum = parseFloat(amount);
+  const amtNum = parseFormattedAmount(amount);
   const addrLC = normAddr(address);
   const cat = normalizeCat(category);
   const row = {
     id: idSeq++,
     address: address.trim(),
     addressLC: addrLC,
-    amount: String(amount).trim(),
+    amount: String(amtNum), // ذخیره بدون کاما
     amountNum: amtNum,
     category: cat,
     addrCat: makeAddrCat(addrLC, cat),
@@ -1923,9 +2000,10 @@ async function addRow(address, amount, category, note = '', skipSave = false) {
    ═══════════════════════════════════════════ */
 function showDupAlert(row, newAmount) {
   dupRowRef = row;
-  $('dupAmt').textContent = fmtNum(row.amountNum);
+  $('dupAmt').textContent = formatAmount(row.amountNum);
   $('dupStatus').textContent = row.sent ? '✅ ارسال شده' : '⏳ ارسال نشده';
-  $('dupUpdate').textContent = `🔄 آپدیت به ${newAmount || row.amount}`;
+  const displayAmt = newAmount ? newAmount : formatAmount(row.amountNum);
+  $('dupUpdate').textContent = `🔄 آپدیت به ${displayAmt}`;
   $('dupAlert').classList.add('show');
 }
 function hideDupAlert() {
@@ -1936,6 +2014,27 @@ function hideDupAlert() {
 /* ═══════════════════════════════════════════
    INPUT
    ═══════════════════════════════════════════ */
+// Auto-format روی input مقدار
+$('newAmt').addEventListener('input', e => {
+  const cursorPos = e.target.selectionStart;
+  const oldValue = e.target.value;
+  const oldLen = oldValue.length;
+
+  const formatted = formatForInput(oldValue);
+  e.target.value = formatted;
+
+  // تنظیم موقعیت cursor
+  const newLen = formatted.length;
+  const newPos = Math.max(0, cursorPos + (newLen - oldLen));
+  try { e.target.setSelectionRange(newPos, newPos); } catch {}
+
+  // آپدیت دکمه آپدیت تکراری
+  if (dupRowRef) {
+    const v = $('newAmt').value.trim() || formatAmount(dupRowRef.amountNum);
+    $('dupUpdate').textContent = `🔄 آپدیت به ${v}`;
+  }
+});
+
 function checkDuplicate() {
   const addr = $('newAddr').value.trim();
   if (!addr) { hideDupAlert(); return; }
@@ -1948,23 +2047,19 @@ function checkDuplicate() {
 
 $('newAddr').addEventListener('input', checkDuplicate);
 $('newCat').addEventListener('change', checkDuplicate);
-$('newAmt').addEventListener('input', () => {
-  if (!dupRowRef) return;
-  const v = $('newAmt').value.trim() || dupRowRef.amount;
-  $('dupUpdate').textContent = `🔄 آپدیت به ${v}`;
-});
 
 $('dupUpdate').onclick = async () => {
   if (!dupRowRef) return;
   const v = $('newAmt').value.trim();
-  if (!v || parseFloat(v) <= 0) { toast('مقدار معتبر وارد کن', 'err'); return; }
-  dupRowRef.amount = v;
-  dupRowRef.amountNum = parseFloat(v);
+  const num = parseFormattedAmount(v);
+  if (!v || isNaN(num) || num <= 0) { toast('مقدار معتبر وارد کن', 'err'); return; }
+  dupRowRef.amount = String(num);
+  dupRowRef.amountNum = num;
   const div = domMap.get(dupRowRef.id);
   if (div) updateRowEl(div, dupRowRef);
   updateStats();
   try { await dbPut(dupRowRef); } catch (e) { console.warn(e); }
-  toast(`✅ آپدیت شد به ${fmtNum(v)}`, 'success');
+  toast(`✅ آپدیت شد به ${formatAmount(num)}`, 'success');
   $('newAddr').value = '';
   $('newAmt').value = '';
   $('newNote').value = '';
@@ -1980,7 +2075,8 @@ $('addBtn').onclick = async () => {
   const cat = normalizeCat($('newCat').value);
   const note = $('newNote').value.trim();
   if (!addr) { toast('آدرس را وارد کنید', 'err'); return; }
-  if (!amt || parseFloat(amt) <= 0) { toast('مقدار معتبر وارد کنید', 'err'); return; }
+  const amtNum = parseFormattedAmount(amt);
+  if (!amt || isNaN(amtNum) || amtNum <= 0) { toast('مقدار معتبر وارد کنید', 'err'); return; }
 
   const key = makeAddrCat(normAddr(addr), cat);
   if (rowMap.has(key)) {
@@ -2001,7 +2097,7 @@ $('newAddr').addEventListener('keydown', e => { if (e.key === 'Enter') $('newAmt
 $('newAmt').addEventListener('keydown', e => { if (e.key === 'Enter') $('newNote').focus(); });
 
 /* ═══════════════════════════════════════════
-   BULK IMPORT (پشتیبانی از ستون چهارم توضیحات)
+   BULK IMPORT
    ═══════════════════════════════════════════ */
 $('bulkAddBtn').onclick = async () => {
   const raw = $('bulkInput').value.trim();
@@ -2013,15 +2109,15 @@ $('bulkAddBtn').onclick = async () => {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    // جدا کردن با کاما/سمی‌کالن/تب — حداکثر 4 بخش
-    const parts = line.split(/[,;\t]/);
-    if (parts.length < 2) { skipped++; continue; }
-    const addr = parts[0].trim();
-    const amt = parts[1].trim();
-    const catRaw = (parts[2] || '').trim().toLowerCase();
-    // توضیحات = هرچی بعد از کاما سوم بود (حتی اگه خودش کاما داشته باشه)
-    const note = parts.slice(3).join(',').trim();
-    if (!addr || !amt || parseFloat(amt) <= 0) { skipped++; continue; }
+
+    // پارس هوشمند: اگه مقدار کاما داره، کاما رو نگه دار
+    // فرمت پشتیبانی شده: address,amount,category,note
+    // ولی اگه amount خودش کاما داره (مثل 1,000) → کاما رو جزو عدد نگه دار
+    const parts = parseBulkLine(line);
+    if (!parts) { skipped++; continue; }
+
+    const { addr, amt, catRaw, note } = parts;
+    if (!addr || !amt || isNaN(amt) || amt <= 0) { skipped++; continue; }
 
     const cat = catRaw === 'nft' ? CAT.NFT : CAT.COMMUNITY;
     const addrLC = normAddr(addr);
@@ -2029,13 +2125,12 @@ $('bulkAddBtn').onclick = async () => {
 
     if (rowMap.has(addrCat)) { dup++; continue; }
 
-    const amtNum = parseFloat(amt);
     const row = {
       id: idSeq++,
       address: addr,
       addressLC: addrLC,
-      amount: String(amt).trim(),
-      amountNum: amtNum,
+      amount: String(amt),
+      amountNum: amt,
       category: cat,
       addrCat: addrCat,
       note: note,
@@ -2055,6 +2150,48 @@ $('bulkAddBtn').onclick = async () => {
   updateStats();
   toast(`✅ ${toAdd.length} اضافه${dup ? ` • ${dup} تکراری در دسته` : ''}${skipped ? ` • ${skipped} نامعتبر` : ''}`, 'success', 4000);
 };
+
+// پارس هوشمند خط ایمپورت: با در نظر گرفتن اعداد با کاما
+function parseBulkLine(line) {
+  // فرمت: address,amount[,category[,note]]
+  // مشکل: اگه amount = "1,000" باشه، split با کاما اشتباه می‌کنه
+  // راه‌حل: با regex می‌گیریم
+
+  // قدم ۱: آدرس رو بگیر (اولین کاما)
+  const firstComma = line.indexOf(',');
+  if (firstComma === -1) return null;
+  const addr = line.slice(0, firstComma).trim();
+  let rest = line.slice(firstComma + 1).trim();
+
+  // قدم ۲: مقدار رو بگیر — عدد می‌تونه کاما داشته باشه
+  // الگو: یک یا چند رقم که با کاما جدا شدن، اختیاراً اعشار
+  const amountMatch = rest.match(/^(-?\d{1,3}(?:,\d{3})*(?:\.\d+)?|-?\d+(?:\.\d+)?)\s*(?:,|$)/);
+  if (!amountMatch) return null;
+  const amountStr = amountMatch[1];
+  rest = rest.slice(amountMatch[0].length).trim();
+
+  // قدم ۳: بقیه: category[,note]
+  let catRaw = '';
+  let note = '';
+  if (rest) {
+    // جدا کردن با اولین کاما — دسته اول، بقیه note
+    const secondComma = rest.indexOf(',');
+    if (secondComma === -1) {
+      catRaw = rest.trim().toLowerCase();
+    } else {
+      catRaw = rest.slice(0, secondComma).trim().toLowerCase();
+      note = rest.slice(secondComma + 1).trim();
+    }
+  }
+
+  const amount = parseFormattedAmount(amountStr);
+  return {
+    addr: addr,
+    amt: amount,
+    catRaw: catRaw,
+    note: note
+  };
+}
 
 /* ═══════════════════════════════════════════
    NOTE EDITING
@@ -2100,12 +2237,10 @@ async function startNoteEdit(row) {
       toast('📝 توضیحات ذخیره شد', 'success', 1500);
     }
 
-    // بازسازی نمایش
     noteEl.classList.remove('editing');
     noteEl.innerHTML = `<span class="note-icon">📝</span><span class="note-text"></span>`;
     updateNoteEl(div, row);
 
-    // اگه توضیحات خالی شد و search active است، فیلتر رو دوباره اعمال کن
     if (currentSearch) applyFilters();
   };
 
@@ -2126,7 +2261,6 @@ $('rowList').addEventListener('click', async e => {
   const row = rows.find(r => r.id === id);
   if (!row) return;
 
-  // Note edit
   if (e.target.closest('.row-note')) {
     if (editingNoteId === row.id) return;
     startNoteEdit(row);
@@ -2259,7 +2393,8 @@ $('clearSentBtn').onclick = async () => {
 
 $('exportBtn').onclick = () => {
   if (!rows.length) { toast('لیست خالی است', 'warn'); return; }
-  // escape توضیحات برای CSV
+
+  // escape برای CSV
   const esc = v => {
     const s = String(v == null ? '' : v);
     if (s.includes(',') || s.includes('"') || s.includes('\n')) {
@@ -2267,9 +2402,13 @@ $('exportBtn').onclick = () => {
     }
     return s;
   };
-  const csv = 'address,amount,category,status,note\n' + rows.map(r =>
-    `${esc(r.address)},${esc(r.amount)},${esc(normalizeCat(r.category))},${r.sent ? 'sent' : 'pending'},${esc(r.note || '')}`
-  ).join('\n');
+
+  // amount با فرمت جداکننده (داخل "")
+  const csv = 'address,amount,category,status,note\n' + rows.map(r => {
+    const amtStr = formatAmount(r.amountNum);
+    return `${esc(r.address)},"${amtStr}",${esc(normalizeCat(r.category))},${r.sent ? 'sent' : 'pending'},${esc(r.note || '')}`;
+  }).join('\n');
+
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2284,6 +2423,9 @@ $('exportBtn').onclick = () => {
 async function init() {
   try {
     await openDB();
+
+    const savedSep = await metaGet('useSeparator');
+    useSeparator = savedSep === null ? true : (savedSep === true);
 
     const dbRows = await dbGetAll();
     dbRows.sort((a, b) => a.id - b.id);
@@ -2335,6 +2477,7 @@ async function init() {
     applyFilters();
     updateStats();
     syncFingerprintToggle();
+    syncSeparatorToggle();
 
     const authAvailable = await Auth.isAvailable();
     if (fingerprintEnabled && credentialIdB64 && authAvailable) {
