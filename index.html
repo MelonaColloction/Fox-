@@ -547,10 +547,7 @@
     font-size: 11.5px;
     font-weight: 600;
     white-space: nowrap;
-    cursor: pointer;
-    transition: all .15s;
   }
-  .cat-badge:hover { filter: brightness(1.2); }
   .cat-badge.community {
     background: rgba(6,182,212,.12);
     color: #67e8f9;
@@ -926,7 +923,7 @@
     <div class="stat">
       <div class="stat-icon">👥</div>
       <div class="stat-value" id="stTotal">0</div>
-      <div class="stat-label">کل والت‌ها</div>
+      <div class="stat-label">کل رکوردها</div>
       <div class="stat-sub" id="stTotalSub">—</div>
     </div>
     <div class="stat green">
@@ -987,20 +984,19 @@
     </div>
 
     <div class="dup-alert" id="dupAlert">
-      <div class="dup-head"><span>⚠️</span><span>این آدرس قبلاً ثبت شده است</span></div>
+      <div class="dup-head"><span>⚠️</span><span>این آدرس در این دسته قبلاً ثبت شده است</span></div>
       <div class="dup-info">
         <div class="dup-info-item">
           <div class="k">مقدار فعلی</div>
           <div class="v" id="dupAmt">-</div>
         </div>
         <div class="dup-info-item">
-          <div class="k">دسته فعلی</div>
-          <div class="v" id="dupCat">-</div>
+          <div class="k">وضعیت</div>
+          <div class="v" id="dupStatus">-</div>
         </div>
       </div>
       <div class="dup-actions">
         <button class="btn-sm btn-ghost" id="dupUpdate">🔄 آپدیت مقدار</button>
-        <button class="btn-sm btn-ghost" id="dupCatUpdate">🔀 تغییر دسته</button>
         <button class="btn-sm btn-ghost" id="dupClose">بستن</button>
       </div>
     </div>
@@ -1104,7 +1100,7 @@
    INDEXEDDB SETUP
    ═══════════════════════════════════════════ */
 const DB_NAME = 'avax_airdrop_manager';
-const DB_VERSION = 2;
+const DB_VERSION = 3; // نسخه 3: پشتیبانی از یک آدرس در چند دسته
 const STORE_ROWS = 'rows';
 const STORE_META = 'meta';
 
@@ -1119,17 +1115,61 @@ function openDB() {
 
     req.onupgradeneeded = e => {
       const database = e.target.result;
+      const oldVersion = e.oldVersion;
+      const tx = e.target.transaction;
 
       if (!database.objectStoreNames.contains(STORE_ROWS)) {
+        // ساخت اولیه
         const store = database.createObjectStore(STORE_ROWS, { keyPath: 'id' });
-        store.createIndex('addressLC', 'addressLC', { unique: true });
+        store.createIndex('addressLC', 'addressLC', { unique: false });
         store.createIndex('sent', 'sent', { unique: false });
         store.createIndex('category', 'category', { unique: false });
+        store.createIndex('addrCat', 'addrCat', { unique: true });
       } else {
-        const tx = e.target.transaction;
+        // ارتقا از نسخه قدیمی
         const store = tx.objectStore(STORE_ROWS);
+
+        // اگر ایندکس addressLC قدیمی unique است، حذفش کن و دوباره بساز
+        if (store.indexNames.contains('addressLC')) {
+          const idx = store.index('addressLC');
+          if (idx.unique) {
+            store.deleteIndex('addressLC');
+          }
+        }
+        if (!store.indexNames.contains('addressLC')) {
+          store.createIndex('addressLC', 'addressLC', { unique: false });
+        }
+
+        if (!store.indexNames.contains('sent')) {
+          store.createIndex('sent', 'sent', { unique: false });
+        }
         if (!store.indexNames.contains('category')) {
           store.createIndex('category', 'category', { unique: false });
+        }
+
+        // ساخت ایندکس ترکیبی addrCat (اگر قبلاً نبوده)
+        const hadAddrCat = store.indexNames.contains('addrCat');
+        if (!hadAddrCat) {
+          store.createIndex('addrCat', 'addrCat', { unique: true });
+        }
+
+        // مهاجرت داده‌های قدیمی: اضافه کردن addrCat
+        if (!hadAddrCat || oldVersion < 3) {
+          const getAllReq = store.getAll();
+          getAllReq.onsuccess = () => {
+            const all = getAllReq.result || [];
+            all.forEach(r => {
+              const cat = (r.category === 'nft') ? 'nft' : 'community';
+              const addrLC = r.addressLC || (r.address ? r.address.toLowerCase() : '');
+              const newAddrCat = addrLC + '::' + cat;
+              if (r.addrCat !== newAddrCat || r.category !== cat) {
+                r.category = cat;
+                r.addrCat = newAddrCat;
+                store.put(r);
+              }
+            });
+            console.log(`[Migration v3] Processed ${all.length} rows`);
+          };
         }
       }
 
@@ -1239,7 +1279,7 @@ function metaDelete(key) {
    STATE
    ═══════════════════════════════════════════ */
 const rows = [];
-const rowMap = new Map();
+const rowMap = new Map(); // کلید: addrCat => (addressLC + '::' + category)
 const domMap = new Map();
 let idSeq = 1;
 let currentFilter = 'all';
@@ -1253,6 +1293,7 @@ const $ = id => document.getElementById(id);
 const normAddr = a => a.trim().toLowerCase();
 const fmtNum = n => Number(n).toLocaleString('en-US');
 const normalizeCat = c => (c === CAT.NFT ? CAT.NFT : CAT.COMMUNITY);
+const makeAddrCat = (addressLC, category) => addressLC + '::' + normalizeCat(category);
 
 /* ═══════════════════════════════════════════
    TOAST
@@ -1360,7 +1401,6 @@ const Auth = {
       const ok = (typeof avail === 'boolean') ? avail : !!(avail && avail.isAvailable);
       if (!ok) throw new Error('دستگاه شما اثر انگشت / بیومتریک ندارد');
 
-      // یک verify سریع برای اطمینان از اینکه کاربر می‌تونه احراز هویت کنه
       try {
         await nb.verifyIdentity({
           reason: 'برای فعال‌سازی قفل، هویت خود را تأیید کنید',
@@ -1614,9 +1654,11 @@ function updateStats() {
 
     let sent = 0, totalToken = 0, communityToken = 0, nftToken = 0;
     let communityCount = 0, nftCount = 0, communitySent = 0, nftSent = 0;
+    const uniqueAddrs = new Set();
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
+      uniqueAddrs.add(r.addressLC);
       if (r.sent) sent++;
       totalToken += r.amountNum || 0;
       if (r.category === CAT.NFT) {
@@ -1631,7 +1673,7 @@ function updateStats() {
     }
 
     $('stTotal').textContent = fmtNum(rows.length);
-    $('stTotalSub').textContent = `🌐 ${fmtNum(communityCount)} • 🖼️ ${fmtNum(nftCount)}`;
+    $('stTotalSub').textContent = `👤 ${fmtNum(uniqueAddrs.size)} آدرس یکتا • 🌐 ${fmtNum(communityCount)} • 🖼️ ${fmtNum(nftCount)}`;
     $('stSent').textContent  = fmtNum(sent);
     $('stSentSub').textContent = `🌐 ${fmtNum(communitySent)} • 🖼️ ${fmtNum(nftSent)}`;
     $('stWait').textContent  = fmtNum(rows.length - sent);
@@ -1639,9 +1681,9 @@ function updateStats() {
     $('stToken').textContent = fmtNum(totalToken);
     $('stTokenSub').textContent = `جمع کل`;
     $('stCommunity').textContent = fmtNum(communityToken);
-    $('stCommunitySub').textContent = `${fmtNum(communityCount)} والت`;
+    $('stCommunitySub').textContent = `${fmtNum(communityCount)} رکورد`;
     $('stNft').textContent = fmtNum(nftToken);
-    $('stNftSub').textContent = `${fmtNum(nftCount)} والت`;
+    $('stNftSub').textContent = `${fmtNum(nftCount)} رکورد`;
   });
 }
 
@@ -1685,9 +1727,9 @@ function updateRowEl(div, row) {
   const catCell = div.querySelector('.cat-value');
   const cat = normalizeCat(row.category);
   if (cat === CAT.NFT) {
-    catCell.innerHTML = `<span class="cat-badge nft" title="کلیک برای تغییر دسته">🖼️ NFT</span>`;
+    catCell.innerHTML = `<span class="cat-badge nft">🖼️ NFT</span>`;
   } else {
-    catCell.innerHTML = `<span class="cat-badge community" title="کلیک برای تغییر دسته">🌐 جامعه</span>`;
+    catCell.innerHTML = `<span class="cat-badge community">🌐 جامعه</span>`;
   }
 
   const statusCell = div.querySelector('.row-status');
@@ -1741,17 +1783,20 @@ function scheduleReindex() {
 
 async function addRow(address, amount, category, skipSave = false) {
   const amtNum = parseFloat(amount);
+  const addrLC = normAddr(address);
+  const cat = normalizeCat(category);
   const row = {
     id: idSeq++,
     address: address.trim(),
-    addressLC: normAddr(address),
+    addressLC: addrLC,
     amount: String(amount).trim(),
     amountNum: amtNum,
-    category: normalizeCat(category),
+    category: cat,
+    addrCat: makeAddrCat(addrLC, cat),
     sent: false
   };
   rows.push(row);
-  rowMap.set(row.addressLC, row);
+  rowMap.set(row.addrCat, row);
   appendRow(row);
   updateStats();
   if (!skipSave) {
@@ -1761,21 +1806,13 @@ async function addRow(address, amount, category, skipSave = false) {
 }
 
 /* ═══════════════════════════════════════════
-   DUPLICATE
+   DUPLICATE (فقط در همون دسته)
    ═══════════════════════════════════════════ */
 function showDupAlert(row, newAmount) {
   dupRowRef = row;
   $('dupAmt').textContent = fmtNum(row.amountNum);
-  $('dupCat').textContent = CAT_LABEL[normalizeCat(row.category)];
+  $('dupStatus').textContent = row.sent ? '✅ ارسال شده' : '⏳ ارسال نشده';
   $('dupUpdate').textContent = `🔄 آپدیت به ${newAmount || row.amount}`;
-  const newCat = normalizeCat($('newCat').value);
-  const curCat = normalizeCat(row.category);
-  if (newCat !== curCat) {
-    $('dupCatUpdate').style.display = 'inline-flex';
-    $('dupCatUpdate').textContent = `🔀 تغییر به ${CAT_LABEL[newCat]}`;
-  } else {
-    $('dupCatUpdate').style.display = 'none';
-  }
   $('dupAlert').classList.add('show');
 }
 function hideDupAlert() {
@@ -1786,28 +1823,22 @@ function hideDupAlert() {
 /* ═══════════════════════════════════════════
    INPUT
    ═══════════════════════════════════════════ */
-$('newAddr').addEventListener('input', () => {
+function checkDuplicate() {
   const addr = $('newAddr').value.trim();
   if (!addr) { hideDupAlert(); return; }
-  const existing = rowMap.get(normAddr(addr));
+  const cat = normalizeCat($('newCat').value);
+  const key = makeAddrCat(normAddr(addr), cat);
+  const existing = rowMap.get(key);
   if (existing) showDupAlert(existing, $('newAmt').value.trim());
   else hideDupAlert();
-});
+}
+
+$('newAddr').addEventListener('input', checkDuplicate);
+$('newCat').addEventListener('change', checkDuplicate);
 $('newAmt').addEventListener('input', () => {
   if (!dupRowRef) return;
   const v = $('newAmt').value.trim() || dupRowRef.amount;
   $('dupUpdate').textContent = `🔄 آپدیت به ${v}`;
-});
-$('newCat').addEventListener('change', () => {
-  if (!dupRowRef) return;
-  const newCat = normalizeCat($('newCat').value);
-  const curCat = normalizeCat(dupRowRef.category);
-  if (newCat !== curCat) {
-    $('dupCatUpdate').style.display = 'inline-flex';
-    $('dupCatUpdate').textContent = `🔀 تغییر به ${CAT_LABEL[newCat]}`;
-  } else {
-    $('dupCatUpdate').style.display = 'none';
-  }
 });
 
 $('dupUpdate').onclick = async () => {
@@ -1827,22 +1858,6 @@ $('dupUpdate').onclick = async () => {
   hideDupAlert();
 };
 
-$('dupCatUpdate').onclick = async () => {
-  if (!dupRowRef) return;
-  const newCat = normalizeCat($('newCat').value);
-  dupRowRef.category = newCat;
-  const div = domMap.get(dupRowRef.id);
-  if (div) updateRowEl(div, dupRowRef);
-  updateStats();
-  applyFilters();
-  try { await dbPut(dupRowRef); } catch (e) { console.warn(e); }
-  toast(`🔀 دسته تغییر کرد به ${CAT_LABEL[newCat]}`, 'success');
-  $('newAddr').value = '';
-  $('newAmt').value = '';
-  $('newAddr').focus();
-  hideDupAlert();
-};
-
 $('dupClose').onclick = hideDupAlert;
 
 $('addBtn').onclick = async () => {
@@ -1851,11 +1866,14 @@ $('addBtn').onclick = async () => {
   const cat = normalizeCat($('newCat').value);
   if (!addr) { toast('آدرس را وارد کنید', 'err'); return; }
   if (!amt || parseFloat(amt) <= 0) { toast('مقدار معتبر وارد کنید', 'err'); return; }
-  if (rowMap.has(normAddr(addr))) {
-    showDupAlert(rowMap.get(normAddr(addr)), amt);
-    toast('⚠️ این آدرس قبلاً ثبت شده', 'warn');
+
+  const key = makeAddrCat(normAddr(addr), cat);
+  if (rowMap.has(key)) {
+    showDupAlert(rowMap.get(key), amt);
+    toast('⚠️ این آدرس در این دسته قبلاً ثبت شده', 'warn');
     return;
   }
+
   await addRow(addr, amt, cat);
   toast(`✅ والت ${CAT_LABEL[cat]} اضافه شد`, 'success');
   $('newAddr').value = '';
@@ -1885,21 +1903,26 @@ $('bulkAddBtn').onclick = async () => {
     const amt = parts[1].trim();
     const catRaw = (parts[2] || '').trim().toLowerCase();
     if (!addr || !amt || parseFloat(amt) <= 0) { skipped++; continue; }
-    if (rowMap.has(normAddr(addr))) { dup++; continue; }
 
     const cat = catRaw === 'nft' ? CAT.NFT : CAT.COMMUNITY;
+    const addrLC = normAddr(addr);
+    const addrCat = makeAddrCat(addrLC, cat);
+
+    if (rowMap.has(addrCat)) { dup++; continue; }
+
     const amtNum = parseFloat(amt);
     const row = {
       id: idSeq++,
       address: addr,
-      addressLC: normAddr(addr),
+      addressLC: addrLC,
       amount: String(amt).trim(),
       amountNum: amtNum,
       category: cat,
+      addrCat: addrCat,
       sent: false
     };
     rows.push(row);
-    rowMap.set(row.addressLC, row);
+    rowMap.set(row.addrCat, row);
     appendRow(row);
     toAdd.push(row);
   }
@@ -1910,7 +1933,7 @@ $('bulkAddBtn').onclick = async () => {
 
   $('bulkInput').value = '';
   updateStats();
-  toast(`✅ ${toAdd.length} اضافه${dup ? ` • ${dup} تکراری` : ''}${skipped ? ` • ${skipped} نامعتبر` : ''}`, 'success', 4000);
+  toast(`✅ ${toAdd.length} اضافه${dup ? ` • ${dup} تکراری در دسته` : ''}${skipped ? ` • ${skipped} نامعتبر` : ''}`, 'success', 4000);
 };
 
 /* ═══════════════════════════════════════════
@@ -1945,16 +1968,6 @@ $('rowList').addEventListener('click', async e => {
     return;
   }
 
-  if (e.target.closest('.cat-badge')) {
-    row.category = normalizeCat(row.category) === CAT.NFT ? CAT.COMMUNITY : CAT.NFT;
-    updateRowEl(card, row);
-    updateStats();
-    applyFilters();
-    try { await dbPut(row); } catch (err) { console.warn(err); }
-    toast(`🔀 دسته: ${CAT_LABEL[row.category]}`, 'info', 1500);
-    return;
-  }
-
   if (e.target.closest('.toggle-btn')) {
     row.sent = !row.sent;
     updateRowEl(card, row);
@@ -1967,7 +1980,7 @@ $('rowList').addEventListener('click', async e => {
   if (e.target.closest('.del-btn')) {
     const idx = rows.indexOf(row);
     if (idx !== -1) rows.splice(idx, 1);
-    rowMap.delete(row.addressLC);
+    rowMap.delete(row.addrCat);
     domMap.delete(row.id);
     card.remove();
     updateStats();
@@ -2024,7 +2037,7 @@ function applyFilters() {
    ═══════════════════════════════════════════ */
 $('clearAllBtn').onclick = async () => {
   if (!rows.length) return;
-  const ok = await confirmModal('پاک کردن همه', `همه ${rows.length} والت حذف شوند؟`);
+  const ok = await confirmModal('پاک کردن همه', `همه ${rows.length} رکورد حذف شوند؟`);
   if (!ok) return;
   rows.length = 0;
   rowMap.clear();
@@ -2039,13 +2052,13 @@ $('clearAllBtn').onclick = async () => {
 $('clearSentBtn').onclick = async () => {
   const sentRows = rows.filter(r => r.sent);
   if (!sentRows.length) { toast('هیچ ارسال‌شده‌ای نیست', 'warn'); return; }
-  const ok = await confirmModal('حذف ارسال‌شده‌ها', `${sentRows.length} والت حذف شوند؟`);
+  const ok = await confirmModal('حذف ارسال‌شده‌ها', `${sentRows.length} رکورد حذف شوند؟`);
   if (!ok) return;
   const idsToDelete = [];
   sentRows.forEach(row => {
     const idx = rows.indexOf(row);
     if (idx !== -1) rows.splice(idx, 1);
-    rowMap.delete(row.addressLC);
+    rowMap.delete(row.addrCat);
     const div = domMap.get(row.id);
     if (div) div.remove();
     domMap.delete(row.id);
@@ -2083,17 +2096,20 @@ async function init() {
     dbRows.forEach(r => {
       const amtNum = parseFloat(r.amount);
       if (isNaN(amtNum)) return;
+      const cat = normalizeCat(r.category);
+      const addrLC = r.addressLC || normAddr(r.address);
       const row = {
         id: r.id,
         address: r.address,
-        addressLC: r.addressLC || normAddr(r.address),
+        addressLC: addrLC,
         amount: String(r.amount),
         amountNum: amtNum,
-        category: normalizeCat(r.category),
+        category: cat,
+        addrCat: r.addrCat || makeAddrCat(addrLC, cat),
         sent: !!r.sent
       };
       rows.push(row);
-      rowMap.set(row.addressLC, row);
+      rowMap.set(row.addrCat, row);
       appendRow(row);
     });
 
@@ -2136,7 +2152,7 @@ async function init() {
 
     if (rows.length > 0) {
       setTimeout(() => {
-        toast(`📂 ${fmtNum(rows.length)} والت بازیابی شد`, 'info', 2500);
+        toast(`📂 ${fmtNum(rows.length)} رکورد بازیابی شد`, 'info', 2500);
       }, 300);
     }
   } catch (e) {
