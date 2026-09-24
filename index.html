@@ -84,6 +84,26 @@
   }
   .brand-text p { font-size: 12px; color: var(--text-dim); }
 
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  .settings-btn {
+    width: 44px; height: 44px;
+    padding: 0;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 20px;
+    display: grid; place-items: center;
+    transition: all .2s;
+    cursor: pointer;
+  }
+  .settings-btn:hover {
+    background: rgba(255,255,255,.1);
+    border-color: var(--border-2);
+    transform: rotate(45deg);
+  }
+
   .stats {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -258,6 +278,9 @@
     background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text);
+  }
+  .btn-danger {
+    background: linear-gradient(135deg, #ef4444, #991b1b);
   }
   .btn-sm {
     padding: 7px 12px;
@@ -640,10 +663,12 @@
     border: 1px solid var(--border-2);
     border-radius: var(--radius);
     padding: 24px;
-    max-width: 420px;
+    max-width: 480px;
     width: 100%;
     box-shadow: 0 24px 60px rgba(0,0,0,.6);
     animation: slideUp .3s cubic-bezier(.2,.9,.3,1.3);
+    max-height: 90vh;
+    overflow-y: auto;
   }
   .modal h3 { font-size: 17px; margin-bottom: 10px; }
   .modal p { color: var(--text-dim); font-size: 13.5px; line-height: 1.7; margin-bottom: 20px; }
@@ -654,6 +679,204 @@
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
 
+  .settings-section {
+    padding: 16px;
+    background: rgba(0,0,0,.25);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 14px;
+  }
+  .settings-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .settings-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .settings-section-title .s-icon {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.05);
+    display: grid; place-items: center;
+    font-size: 16px;
+  }
+  .settings-section-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin-top: 6px;
+  }
+
+  .toggle {
+    position: relative;
+    width: 52px;
+    height: 30px;
+    background: rgba(255,255,255,.1);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .25s;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .25s cubic-bezier(.2,.9,.3,1.3);
+    box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  }
+  .toggle.on {
+    background: linear-gradient(135deg, #22c55e, #15803d);
+    border-color: rgba(34,197,94,.4);
+  }
+  .toggle.on::after {
+    transform: translateX(-22px);
+  }
+  .toggle.disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+
+  .settings-note {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(59,130,246,.08);
+    border: 1px solid rgba(59,130,246,.25);
+    border-radius: 9px;
+    font-size: 11.5px;
+    color: #93c5fd;
+    line-height: 1.7;
+  }
+  .settings-note.warn {
+    background: rgba(245,158,11,.08);
+    border-color: rgba(245,158,11,.25);
+    color: #fbbf24;
+  }
+  .settings-note.err {
+    background: rgba(239,68,68,.08);
+    border-color: rgba(239,68,68,.25);
+    color: #fca5a5;
+  }
+
+  .lock-screen {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, #14161f 0%, #0a0b14 100%);
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    flex-direction: column;
+  }
+  .lock-screen.show { display: flex; }
+  .lock-content {
+    text-align: center;
+    max-width: 380px;
+    width: 100%;
+    animation: fadeIn .4s;
+  }
+  .lock-fingerprint {
+    width: 130px;
+    height: 130px;
+    margin: 0 auto 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,77,77,.15), rgba(168,85,247,.15));
+    border: 2px solid rgba(255,77,77,.3);
+    display: grid;
+    place-items: center;
+    font-size: 62px;
+    cursor: pointer;
+    transition: all .25s;
+    position: relative;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  .lock-fingerprint:hover {
+    transform: scale(1.05);
+    border-color: rgba(255,77,77,.6);
+    box-shadow: 0 0 40px rgba(255,77,77,.3);
+  }
+  .lock-fingerprint.scanning {
+    animation: scanning .8s ease-in-out infinite;
+    border-color: var(--green);
+    box-shadow: 0 0 60px rgba(34,197,94,.5);
+  }
+  .lock-fingerprint.success {
+    border-color: var(--green);
+    background: rgba(34,197,94,.15);
+    animation: successPulse .5s;
+  }
+  .lock-fingerprint.error {
+    border-color: var(--accent);
+    background: rgba(255,77,77,.15);
+    animation: shake .4s;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,77,.3); }
+    50% { box-shadow: 0 0 0 20px rgba(255,77,77,0); }
+  }
+  @keyframes scanning {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  @keyframes successPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  .lock-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, #fff, #ffb3b3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .lock-subtitle {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    margin-bottom: 30px;
+  }
+  .lock-btn {
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #ff4d4d, #b91c1c);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .lock-btn:hover { filter: brightness(1.15); transform: translateY(-2px); }
+  .lock-btn:active { transform: translateY(0); }
+  .lock-hint {
+    font-size: 11.5px;
+    color: var(--text-mute);
+    margin-top: 16px;
+  }
+
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
@@ -661,13 +884,30 @@
     border-radius: 8px;
   }
   ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.2); }
+
+  .app-content.blurred {
+    filter: blur(20px);
+    pointer-events: none;
+    user-select: none;
+    transition: filter .3s;
+  }
 </style>
 </head>
 <body>
 
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-content">
+    <div class="lock-fingerprint" id="lockFingerprint">🔒</div>
+    <div class="lock-title">ورود امن</div>
+    <div class="lock-subtitle">برای دسترسی، هویت خود را تأیید کنید</div>
+    <button class="lock-btn" id="unlockBtn">🔓 آنلاک با اثر انگشت</button>
+    <div class="lock-hint" id="lockHint">از حسگر اثر انگشت یا Windows Hello استفاده کنید</div>
+  </div>
+</div>
+
 <div class="toast-stack" id="toastStack"></div>
 
-<div class="container">
+<div class="container app-content" id="appContent">
 
   <div class="header">
     <div class="brand">
@@ -676,6 +916,9 @@
         <h1>Airdrop Manager</h1>
         <p>مدیریت ارسال توکن روی Avalanche</p>
       </div>
+    </div>
+    <div class="header-actions">
+      <button class="settings-btn" id="settingsBtn" title="تنظیمات">⚙️</button>
     </div>
   </div>
 
@@ -816,6 +1059,44 @@
   </div>
 </div>
 
+<div class="modal-bg" id="settingsBg">
+  <div class="modal">
+    <h3>⚙️ تنظیمات</h3>
+    <p>مدیریت امنیت و ترجیحات اپلیکیشن</p>
+
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <div class="settings-section-title">
+          <div class="s-icon">🔐</div>
+          <span>قفل اثر انگشت</span>
+        </div>
+        <div class="toggle" id="fingerprintToggle"></div>
+      </div>
+      <div class="settings-section-desc">
+        با فعال‌سازی این گزینه، هنگام باز کردن اپ باید هویت خود را با اثر انگشت (یا Windows Hello / Touch ID / Face ID) تأیید کنید.
+      </div>
+      <div class="settings-note" id="webauthnStatus"></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <div class="settings-section-title">
+          <div class="s-icon">🗑️</div>
+          <span>حذف اطلاعات اثر انگشت</span>
+        </div>
+      </div>
+      <div class="settings-section-desc">
+        اگر می‌خواهید از دستگاه دیگری استفاده کنید، ابتدا اعتبار فعلی را حذف کنید.
+      </div>
+      <button class="btn-sm btn-danger" id="resetAuthBtn" style="margin-top:10px;">حذف اعتبار فعلی</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" id="settingsClose">بستن</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -823,20 +1104,14 @@
    INDEXEDDB SETUP
    ═══════════════════════════════════════════ */
 const DB_NAME = 'avax_airdrop_manager';
-const DB_VERSION = 2; // نسخه جدید برای پشتیبانی از category
+const DB_VERSION = 2;
 const STORE_ROWS = 'rows';
 const STORE_META = 'meta';
 
 let db = null;
 
-const CAT = {
-  COMMUNITY: 'community',
-  NFT: 'nft'
-};
-const CAT_LABEL = {
-  community: '🌐 جامعه',
-  nft: '🖼️ هولدر NFT'
-};
+const CAT = { COMMUNITY: 'community', NFT: 'nft' };
+const CAT_LABEL = { community: '🌐 جامعه', nft: '🖼️ هولدر NFT' };
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -851,7 +1126,6 @@ function openDB() {
         store.createIndex('sent', 'sent', { unique: false });
         store.createIndex('category', 'category', { unique: false });
       } else {
-        // ارتقا از نسخه 1 به 2 — اضافه کردن index دسته
         const tx = e.target.transaction;
         const store = tx.objectStore(STORE_ROWS);
         if (!store.indexNames.contains('category')) {
@@ -869,9 +1143,6 @@ function openDB() {
   });
 }
 
-/* ═══════════════════════════════════════════
-   DB OPERATIONS
-   ═══════════════════════════════════════════ */
 function dbAdd(row) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_ROWS, 'readwrite');
@@ -881,7 +1152,6 @@ function dbAdd(row) {
     req.onerror = () => reject(req.error);
   });
 }
-
 function dbPut(row) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_ROWS, 'readwrite');
@@ -891,7 +1161,6 @@ function dbPut(row) {
     req.onerror = () => reject(req.error);
   });
 }
-
 function dbDelete(id) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_ROWS, 'readwrite');
@@ -901,7 +1170,6 @@ function dbDelete(id) {
     req.onerror = () => reject(req.error);
   });
 }
-
 function dbClear() {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_ROWS, 'readwrite');
@@ -911,7 +1179,6 @@ function dbClear() {
     req.onerror = () => reject(req.error);
   });
 }
-
 function dbGetAll() {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_ROWS, 'readonly');
@@ -921,21 +1188,15 @@ function dbGetAll() {
     req.onerror = () => reject(req.error);
   });
 }
-
 function dbBulkAdd(rows) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_ROWS, 'readwrite');
     const store = tx.objectStore(STORE_ROWS);
-    let count = 0;
-    rows.forEach(r => {
-      const req = store.add(r);
-      req.onsuccess = () => { count++; };
-    });
-    tx.oncomplete = () => resolve(count);
+    rows.forEach(r => store.add(r));
+    tx.oncomplete = () => resolve(rows.length);
     tx.onerror = () => reject(tx.error);
   });
 }
-
 function dbBulkDelete(ids) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_ROWS, 'readwrite');
@@ -964,6 +1225,15 @@ function metaGet(key) {
     req.onerror = () => reject(req.error);
   });
 }
+function metaDelete(key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_META, 'readwrite');
+    const store = tx.objectStore(STORE_META);
+    const req = store.delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
 
 /* ═══════════════════════════════════════════
    STATE
@@ -976,6 +1246,8 @@ let currentFilter = 'all';
 let currentCatFilter = 'all';
 let currentSearch = '';
 let dupRowRef = null;
+let fingerprintEnabled = false;
+let credentialIdB64 = null;
 
 const $ = id => document.getElementById(id);
 const normAddr = a => a.trim().toLowerCase();
@@ -999,7 +1271,7 @@ function toast(msg, type = 'success', duration = 2800) {
 }
 
 /* ═══════════════════════════════════════════
-   MODAL
+   CONFIRM MODAL
    ═══════════════════════════════════════════ */
 let modalResolver = null;
 function confirmModal(title, body) {
@@ -1023,6 +1295,314 @@ $('modalBg').onclick = e => {
 };
 
 /* ═══════════════════════════════════════════
+   AUTH: WebAuthn (Web) + Native Biometric (Capacitor)
+   ═══════════════════════════════════════════ */
+const isNative = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const NativeBiometric = () => (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBiometric) || null;
+
+const Auth = {
+  async isAvailable() {
+    if (isNative()) {
+      return !!NativeBiometric();
+    }
+    return !!(window.PublicKeyCredential &&
+      navigator.credentials &&
+      navigator.credentials.create &&
+      window.isSecureContext);
+  },
+
+  async hasBiometric() {
+    if (isNative()) {
+      const nb = NativeBiometric();
+      if (!nb) return false;
+      try {
+        const result = await nb.isAvailable();
+        if (typeof result === 'boolean') return result;
+        return !!(result && result.isAvailable);
+      } catch (e) {
+        console.warn('Native biometric check failed', e);
+        return false;
+      }
+    }
+    if (!this.isAvailable()) return false;
+    try {
+      if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') return false;
+      return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    } catch {
+      return false;
+    }
+  },
+
+  randomBytes(len) {
+    const arr = new Uint8Array(len);
+    crypto.getRandomValues(arr);
+    return arr;
+  },
+  bufToB64(buf) {
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  },
+  b64ToBuf(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  },
+
+  async register() {
+    if (isNative()) {
+      const nb = NativeBiometric();
+      if (!nb) throw new Error('پلاگین بایومتریک در دسترس نیست');
+
+      const avail = await nb.isAvailable();
+      const ok = (typeof avail === 'boolean') ? avail : !!(avail && avail.isAvailable);
+      if (!ok) throw new Error('دستگاه شما اثر انگشت / بیومتریک ندارد');
+
+      // یک verify سریع برای اطمینان از اینکه کاربر می‌تونه احراز هویت کنه
+      try {
+        await nb.verifyIdentity({
+          reason: 'برای فعال‌سازی قفل، هویت خود را تأیید کنید',
+          title: 'فعال‌سازی قفل',
+          subtitle: 'احراز هویت با اثر انگشت',
+          description: 'حسگر اثر انگشت را لمس کنید'
+        });
+      } catch (e) {
+        throw new Error('فعال‌سازی لغو شد');
+      }
+
+      return 'native-biometric-' + Date.now().toString(36);
+    }
+
+    if (!this.isAvailable()) throw new Error('WebAuthn در این محیط پشتیبانی نمی‌شود');
+    const hasPlatform = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if (!hasPlatform) throw new Error('دستگاه شما اثر انگشت / Windows Hello ندارد');
+
+    const userId = this.randomBytes(16);
+    const challenge = this.randomBytes(32);
+
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { name: 'Avalanche Airdrop Manager', id: location.hostname },
+        user: {
+          id: userId,
+          name: 'airdrop-user',
+          displayName: 'مدیر ایردراپ'
+        },
+        pubKeyCredParams: [
+          { alg: -7, type: 'public-key' },
+          { alg: -257, type: 'public-key' }
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'preferred'
+        },
+        timeout: 60000,
+        attestation: 'none'
+      }
+    });
+
+    if (!credential) throw new Error('ثبت اعتبار لغو شد');
+    return this.bufToB64(credential.rawId);
+  },
+
+  async authenticate(credentialId) {
+    if (isNative()) {
+      const nb = NativeBiometric();
+      if (!nb) throw new Error('پلاگین بایومتریک در دسترس نیست');
+
+      try {
+        await nb.verifyIdentity({
+          reason: 'برای ورود به اپ، هویت خود را تأیید کنید',
+          title: 'ورود امن',
+          subtitle: 'احراز هویت با اثر انگشت',
+          description: 'حسگر اثر انگشت دستگاه را لمس کنید'
+        });
+        return true;
+      } catch (e) {
+        console.warn('Native auth failed', e);
+        throw new Error('تأیید هویت لغو یا ناموفق بود');
+      }
+    }
+
+    if (!this.isAvailable()) throw new Error('WebAuthn در این محیط پشتیبانی نمی‌شود');
+    const challenge = this.randomBytes(32);
+    const idBuffer = this.b64ToBuf(credentialId);
+
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{
+          id: idBuffer,
+          type: 'public-key',
+          transports: ['internal']
+        }],
+        userVerification: 'required',
+        timeout: 60000
+      }
+    });
+
+    if (!assertion) throw new Error('تأیید هویت لغو شد');
+    return true;
+  }
+};
+
+/* ═══════════════════════════════════════════
+   SETTINGS UI
+   ═══════════════════════════════════════════ */
+function updateAuthStatus() {
+  const el = $('webauthnStatus');
+  const toggle = $('fingerprintToggle');
+
+  if (!isNative() && !window.isSecureContext) {
+    el.className = 'settings-note err';
+    el.textContent = '❌ این صفحه روی HTTPS یا localhost اجرا نشده. WebAuthn نیاز به اتصال امن دارد.';
+    toggle.classList.add('disabled');
+    return;
+  }
+
+  Auth.isAvailable().then(available => {
+    if (!available) {
+      el.className = 'settings-note err';
+      el.textContent = '❌ احراز هویت بیومتریک در این محیط در دسترس نیست.';
+      toggle.classList.add('disabled');
+      return;
+    }
+
+    toggle.classList.remove('disabled');
+
+    Auth.hasBiometric().then(has => {
+      if (has) {
+        el.className = 'settings-note';
+        el.textContent = isNative()
+          ? '✅ دستگاه شما از اثر انگشت پشتیبانی می‌کند.'
+          : '✅ دستگاه شما از اثر انگشت / Windows Hello پشتیبانی می‌کند.';
+      } else {
+        el.className = 'settings-note warn';
+        el.textContent = '⚠️ دستگاه شما حسگر اثر انگشت یا Windows Hello ندارد.';
+      }
+    });
+  });
+}
+
+function syncFingerprintToggle() {
+  const t = $('fingerprintToggle');
+  t.classList.toggle('on', fingerprintEnabled);
+}
+
+$('settingsBtn').onclick = () => {
+  syncFingerprintToggle();
+  updateAuthStatus();
+  $('settingsBg').classList.add('show');
+};
+$('settingsClose').onclick = () => $('settingsBg').classList.remove('show');
+$('settingsBg').onclick = e => {
+  if (e.target === $('settingsBg')) $('settingsBg').classList.remove('show');
+};
+
+$('fingerprintToggle').onclick = async () => {
+  if ($('fingerprintToggle').classList.contains('disabled')) return;
+
+  if (!fingerprintEnabled) {
+    try {
+      toast('درخواست اثر انگشت...', 'info', 2000);
+      const id = await Auth.register();
+      credentialIdB64 = id;
+      fingerprintEnabled = true;
+      await metaSet('fingerprintEnabled', true);
+      await metaSet('credentialId', id);
+      syncFingerprintToggle();
+      toast('✅ قفل اثر انگشت فعال شد', 'success');
+    } catch (err) {
+      console.error(err);
+      toast('❌ ' + (err.message || 'فعال‌سازی ناموفق'), 'err', 4000);
+    }
+  } else {
+    try {
+      toast('برای غیرفعال‌سازی، تأیید هویت...', 'info', 2000);
+      await Auth.authenticate(credentialIdB64);
+      fingerprintEnabled = false;
+      credentialIdB64 = null;
+      await metaSet('fingerprintEnabled', false);
+      await metaDelete('credentialId');
+      syncFingerprintToggle();
+      toast('🔓 قفل اثر انگشت غیرفعال شد', 'info');
+    } catch (err) {
+      console.error(err);
+      toast('❌ تأیید هویت ناموفق بود', 'err');
+    }
+  }
+};
+
+$('resetAuthBtn').onclick = async () => {
+  const ok = await confirmModal(
+    'حذف اعتبار',
+    'اعتبار اثر انگشت فعلی حذف شود؟ برای فعال‌سازی مجدد باید دوباره ثبت کنید.'
+  );
+  if (!ok) return;
+  fingerprintEnabled = false;
+  credentialIdB64 = null;
+  await metaSet('fingerprintEnabled', false);
+  await metaDelete('credentialId');
+  syncFingerprintToggle();
+  toast('🗑️ اعتبار حذف شد', 'info');
+};
+
+/* ═══════════════════════════════════════════
+   LOCK SCREEN
+   ═══════════════════════════════════════════ */
+async function tryUnlock() {
+  const fp = $('lockFingerprint');
+  const btn = $('unlockBtn');
+  fp.classList.remove('error', 'success');
+  fp.classList.add('scanning');
+  btn.disabled = true;
+  btn.textContent = '⏳ در حال بررسی...';
+
+  try {
+    await Auth.authenticate(credentialIdB64);
+    fp.classList.remove('scanning');
+    fp.classList.add('success');
+    fp.textContent = '✓';
+    btn.textContent = '✅ موفق';
+    setTimeout(() => {
+      $('lockScreen').classList.remove('show');
+      $('appContent').classList.remove('blurred');
+    }, 500);
+  } catch (err) {
+    console.error(err);
+    fp.classList.remove('scanning');
+    fp.classList.add('error');
+    fp.textContent = '✗';
+    btn.disabled = false;
+    btn.textContent = '🔓 تلاش مجدد';
+    $('lockHint').textContent = '❌ تأیید ناموفق بود. دوباره تلاش کنید.';
+    setTimeout(() => {
+      fp.classList.remove('error');
+      fp.textContent = '🔒';
+    }, 1500);
+  }
+}
+
+$('unlockBtn').onclick = tryUnlock;
+$('lockFingerprint').onclick = tryUnlock;
+
+function showLockScreen() {
+  $('lockScreen').classList.add('show');
+  $('appContent').classList.add('blurred');
+  $('lockFingerprint').textContent = '🔒';
+  $('unlockBtn').disabled = false;
+  $('unlockBtn').textContent = '🔓 آنلاک با اثر انگشت';
+  $('lockHint').textContent = isNative()
+    ? 'از حسگر اثر انگشت دستگاه استفاده کنید'
+    : 'از حسگر اثر انگشت یا Windows Hello استفاده کنید';
+  setTimeout(() => tryUnlock(), 400);
+}
+
+/* ═══════════════════════════════════════════
    STATS
    ═══════════════════════════════════════════ */
 let statsScheduled = false;
@@ -1032,20 +1612,13 @@ function updateStats() {
   requestAnimationFrame(() => {
     statsScheduled = false;
 
-    let sent = 0;
-    let totalToken = 0;
-    let communityToken = 0;
-    let nftToken = 0;
-    let communityCount = 0;
-    let nftCount = 0;
-    let communitySent = 0;
-    let nftSent = 0;
+    let sent = 0, totalToken = 0, communityToken = 0, nftToken = 0;
+    let communityCount = 0, nftCount = 0, communitySent = 0, nftSent = 0;
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       if (r.sent) sent++;
       totalToken += r.amountNum || 0;
-
       if (r.category === CAT.NFT) {
         nftToken += r.amountNum || 0;
         nftCount++;
@@ -1059,19 +1632,14 @@ function updateStats() {
 
     $('stTotal').textContent = fmtNum(rows.length);
     $('stTotalSub').textContent = `🌐 ${fmtNum(communityCount)} • 🖼️ ${fmtNum(nftCount)}`;
-
     $('stSent').textContent  = fmtNum(sent);
     $('stSentSub').textContent = `🌐 ${fmtNum(communitySent)} • 🖼️ ${fmtNum(nftSent)}`;
-
     $('stWait').textContent  = fmtNum(rows.length - sent);
     $('stWaitSub').textContent = `🌐 ${fmtNum(communityCount - communitySent)} • 🖼️ ${fmtNum(nftCount - nftSent)}`;
-
     $('stToken').textContent = fmtNum(totalToken);
     $('stTokenSub').textContent = `جمع کل`;
-
     $('stCommunity').textContent = fmtNum(communityToken);
     $('stCommunitySub').textContent = `${fmtNum(communityCount)} والت`;
-
     $('stNft').textContent = fmtNum(nftToken);
     $('stNftSub').textContent = `${fmtNum(nftCount)} والت`;
   });
@@ -1114,7 +1682,6 @@ function updateRowEl(div, row) {
   div.querySelector('.addr-text').textContent = row.address;
   div.querySelector('.amt-value').textContent = formatAmount(row.amountNum);
 
-  // دسته
   const catCell = div.querySelector('.cat-value');
   const cat = normalizeCat(row.category);
   if (cat === CAT.NFT) {
@@ -1378,7 +1945,6 @@ $('rowList').addEventListener('click', async e => {
     return;
   }
 
-  // کلیک روی برچسب دسته → تغییر سریع
   if (e.target.closest('.cat-badge')) {
     row.category = normalizeCat(row.category) === CAT.NFT ? CAT.COMMUNITY : CAT.NFT;
     updateRowEl(card, row);
@@ -1536,6 +2102,8 @@ async function init() {
     const savedFilter = await metaGet('currentFilter');
     const savedCatFilter = await metaGet('currentCatFilter');
     const savedSearch = await metaGet('currentSearch');
+    fingerprintEnabled = (await metaGet('fingerprintEnabled')) === true;
+    credentialIdB64 = await metaGet('credentialId');
 
     if (savedFilter) {
       currentFilter = savedFilter;
@@ -1554,6 +2122,17 @@ async function init() {
 
     applyFilters();
     updateStats();
+    syncFingerprintToggle();
+
+    const authAvailable = await Auth.isAvailable();
+    if (fingerprintEnabled && credentialIdB64 && authAvailable) {
+      showLockScreen();
+    } else if (fingerprintEnabled && (!credentialIdB64 || !authAvailable)) {
+      fingerprintEnabled = false;
+      await metaSet('fingerprintEnabled', false);
+      await metaDelete('credentialId');
+      syncFingerprintToggle();
+    }
 
     if (rows.length > 0) {
       setTimeout(() => {
